@@ -23,19 +23,77 @@
 #define MOTOR9  9
 
 DynamixelWorkbench dxl_wb;
+
+//ros node Handle
 ros::NodeHandle nh;
 
-//make publisher
-std_msgs::String moter_num;
+std_msgs::String input_data;
 std_msgs::Int32 total_count;
+std_msgs::String state;
 
-ros::Publisher sceinaro_make("bookcase_num",  &moter_num);
-ros::Publisher pub_count("count",  &total_count);
+//make publisher
+// ros::Publisher bookcase_num_pub("bookcase_num",  &moter_num);
+ros::Publisher bluetooth_input_pub("bluetooth_input",&input_data);
+ros::Publisher count_pub("count",  &total_count);
 
+int isclose = 0;
 
-int motor_open[9] = {0,};
-//int sensor_on[9] = {0,};
-//int stack[9] = {0,};
+//make callback function
+void close_cb(const std_msgs::String& cmd_msg){
+  //isclose = cmd_msg.data.c_str();
+  if (state.data = "open"){
+      String my_data = cmd_msg.data;
+       //if (cmd_msg.data.c_str() == my_string){
+       if (my_data == "diff"){
+        isclose = 1;
+        //delay(100); //if you want to turn on led aduino do7 
+        digitalWrite(7,HIGH);
+        }
+  }
+}
+
+//make subscriber
+ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
+
+// cmd parse
+String cmd_action = "";
+String cmd_target = "";
+char cmd_seperator = ' ';
+bool task_flag = false;
+
+void readcmdCallback(const std_msgs::String &msg){
+	cmd = msg.data;
+	int separatorIndex = cmd.indexOf(separator);
+  if (separatorIndex != -1) { // cmd가 book1 open 같은 형태인경우
+      cmd_target = cmd.substring(0, separatorIndex);
+      cmd_action = cmd.substring(separatorIndex + 1);
+  } 
+	else { // cmd 가 reset 같은 형태인 경우
+      cmd_action = cmd;
+			cmd_target = "";
+  }
+}
+
+ros::Subscriber<std_msgs::String> command("/cmd", readcmdCallback); // main에서 퍼블리시할 cmd 토픽 sub
+
+void OpenBookcase(int motor_num){
+  String state="";
+  nh.getParam("/bookcase_state" + String(motor_num), state);
+  if(state == "closed"){
+    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 7900));
+    nh.setParam("/bookcase_state" + String(motor_num), "open");
+  }
+}
+
+void CloseBookcase(int montor_num){
+  String state = "";
+  nh.getParam("/bookcase_state" + String(motor_num), state);
+  if(state == "open"){
+    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 100));
+    nh.setParam("/bookcase_state" + String(motor_num), "closed");
+  }
+}
+
 
 uint16_t model_number = 0;
 int32_t presentposition[13];
@@ -52,21 +110,24 @@ int initial_9 = 0;
 int initial_10 = 0;
 int count = 0;
 uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
-static uint32_t pre_time;
 
 void setup() {
-  Serial2.print("Here");
-
 
   nh.initNode();
-  nh.advertise(sceinaro_make);
-  nh.advertise(pub_count);
+  nh.advertise(bookcase_num_pub);
+  nh.advertise(count_pub);
+  nh.subscribe(close_flag);
+  nh.subscribe(command);
+  for(int i{0};i<10;i++) nh.setParam("/bookcase_state" + String(i), "closed");
+  
+  
   Serial.begin(9600);
   Serial2.begin(9600);
+
+  pinMode(7, OUTPUT);
 }
 
 void loop() {
-
   const char *log;
   dxl_wb.init(DEVICE_NAME, BAUDRATE, &log);
 
@@ -159,112 +220,41 @@ void loop() {
     initial_9++;
   }
 
-  
+  // do added start
   while (Serial2.available()) {
-
-//  std::string data = cppString(Serial2.readStringUntil(' '));
-    String data = Serial2.readStringUntil(' ');
-    if(data == "book1" || data == "book2"|| data == "book3"|| data == "book4"|| data == "book5"|| data == "book6"|| data == "book7"|| data == "book8"|| data == "book9"){
-        moter_num.data = data.c_str();
-        
-        count++;
-        total_count.data = count;
-        sceinaro_make.publish(&moter_num);
-        pub_count.publish(&total_count);
-    }
-
-
-    if(data == "reset"){
-        moter_num.data = data.c_str();
+    if(!task_flag){
+      String data = Serial2.readStringUntil(' ');
+      if(data =="reset"){
+        input_data.data = data.c_str();
         count = 0;
         total_count.data = count; 
-        sceinaro_make.publish(&moter_num);
-        pub_count.publish(&total_count);
+        bluetooth_input_pub.publish(&input_data);
+        count_pub.publish(&total_count);
+      }
+      else if(data.substring(0,4) == "book"){
+        input_data.data = data.c_str();
+        count++;
+        total_count.data = count;
+        bluetooth_input_pub.publish(&input_data);
+        count_pub.publish(&total_count);
+      }
+      cmd_action = "";
+      cmd_target = "";
     }
-    
-    
-    if (data == "book1") {
-      dxl_wb.goalPosition(motor[1], (int32_t)(initial_pos[1] + 7900));
-      motor_open[0] = 1;
-      delay(6000);
-      dxl_wb.goalPosition(motor[1], (int32_t)(initial_pos[1] + 100));
-      motor_open[0] = 0;
-    }
-    
-    if (data == "book2") {
-      dxl_wb.goalPosition(motor[2], (int32_t)(initial_pos[2] + 7900));
-      motor_open[1] = 1;
-      delay(6000);
-      dxl_wb.goalPosition(motor[2], (int32_t)(initial_pos[2] + 100));
-      motor_open[1] = 0;
-    }
-
-    if (data == "book3") {
-      dxl_wb.goalPosition(motor[3], (int32_t)(initial_pos[3] + 7900));
-      motor_open[2] = 1;
-      delay(6000);
-      dxl_wb.goalPosition(motor[3], (int32_t)(initial_pos[3] + 100));
-      motor_open[2] = 0;
-    }
-
-    if (data == "book4") {
-      dxl_wb.goalPosition(motor[4], (int32_t)(initial_pos[4] + 7900));
-      motor_open[3] = 1;
-      delay(6000);
-      dxl_wb.goalPosition(motor[4], (int32_t)(initial_pos[4] + 100));
-      motor_open[3] = 0;
-    }
-
-    if (data == "book5") {
-      dxl_wb.goalPosition(motor[5], (int32_t)(initial_pos[5] + 7900));
-      motor_open[4] = 1;
-      delay(6000);
-      dxl_wb.goalPosition(motor[5], (int32_t)(initial_pos[5] + 100));
-      motor_open[4] = 0;
-    }
-
-    if (data == "book6") {
-      dxl_wb.goalPosition(motor[6], (int32_t)(initial_pos[6] +7900));
-      motor_open[5] = 1;
-      delay(6000);
-      dxl_wb.goalPosition(motor[6], (int32_t)(initial_pos[6] + 100));
-      motor_open[5] = 0;
-    }
-
-    if (data == "book7") {
-      dxl_wb.goalPosition(motor[7], (int32_t)(initial_pos[7] +7900));
-      motor_open[6] = 1;
-      delay(6000);
-      dxl_wb.goalPosition(motor[7], (int32_t)(initial_pos[7] + 100));
-      motor_open[6] = 0;
-    }
-
-    if (data == "book8") {
-      dxl_wb.goalPosition(motor[8], (int32_t)(initial_pos[8] +7900));
-      motor_open[7] = 1;
-      delay(6000);
-      dxl_wb.goalPosition(motor[8], (int32_t)(initial_pos[8] + 100));
-      motor_open[7] = 0;
-    }
-
-    if (data == "book9") {
-      dxl_wb.goalPosition(motor[9], (int32_t)(initial_pos[9] +7900));
-      motor_open[8] = 1;
-      delay(6000);
-      dxl_wb.goalPosition(motor[9], (int32_t)(initial_pos[9] + 100));
-      motor_open[8] = 0;
-    }
-
-        
     
     nh.spinOnce();
-    //delay(10);
-
+    if(cmd_action == "open"){
+      OpenBookcase(cmd_target.substring(4).toInt());
+    }
+    else if(cmd_action == "close"){
+      CloseBookcase(cmd_target.substring(4).toInt());
+    }
+    else if(cmd_action == "done"){
+      task_flag = false;
+      cmd_action = "";
+      cmd_target = "";
+    }
+    // do added end
   }
-
-    Serial.println("RUNNING");
-    
-    nh.spinOnce();
-    //delay(10);
 
 }

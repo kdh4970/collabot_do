@@ -36,8 +36,13 @@ class height:
         self.subscriber = rospy.Subscriber(
             name="bt_result", data_class=bt_data, callback=self.callbackFunction)
         self.publisher = rospy.Publisher('ac_information', String, queue_size=10)
+        self.publisher = rospy.Publisher('cmd', String, queue_size=10)
         self.rate = rospy.Rate(30) # 0.5hz
 
+    def gencmd(self):
+        cmd = "book1 open"
+        self.publisher.publish(cmd)
+        self.rate.sleep()
 
     def callbackFunction(self,msg): #기본 argument는 구독한 메세지 객체 
         #callback : topic이 발행되는 이벤트가 발생하였을 때 event lisner함수를 콜백함수로 요구
