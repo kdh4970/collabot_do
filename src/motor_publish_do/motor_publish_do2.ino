@@ -1,7 +1,7 @@
 #define USE_USBCON  
 // #include <std_msgs/Int32.h>
 #include <DynamixelWorkbench.h>
-#include <BookcaseReader.h>
+#include "BookcaseReader.h"
 #if defined(__OPENCM904__)
 #define DEVICE_NAME "3" //Dynamixel on Serial3(USART3)  <-OpenCM 485EXP
 #elif defined(__OPENCR__)
@@ -21,10 +21,9 @@
 #define MOTOR9  9
 
 DynamixelWorkbench dxl_wb;
-BookcaseReader bookcaseReader;
 //ros node Handle
 ros::NodeHandle nh;
-
+BookcaseReader bookcaseReader(Serial2,nh);
 // std_msgs::Int32 total_count;
 std_msgs::String state;
 
@@ -60,7 +59,7 @@ bool task_flag = false;
 void readcmdCallback(const std_msgs::String &msg){
 	cmd = msg.data;
 	int separatorIndex = cmd.indexOf(cmd_seperator);
-  if (separatorIndex != -1) { // cmd가 book1 open 같은 형태인경우
+  if (separatorIndex != -1) { // cmd book1 open
       cmd_target = cmd.substring(0, separatorIndex);
       cmd_action = cmd.substring(separatorIndex + 1);
   } 
@@ -70,7 +69,7 @@ void readcmdCallback(const std_msgs::String &msg){
   }
 }
 
-ros::Subscriber<std_msgs::String> command("cmd_opencr", readcmdCallback); // main에서 퍼블리시할 cmd 토픽 sub
+ros::Subscriber<std_msgs::String> command("cmd_opencr", readcmdCallback); 
 
 
 
@@ -123,7 +122,7 @@ void setup() {
   
   Serial.begin(9600);
   // Serial2.begin(9600);
-  bookcaseReader.init(Serial2, 9600, nh);
+  bookcaseReader.init(9600);
 
   pinMode(7, OUTPUT);
 }

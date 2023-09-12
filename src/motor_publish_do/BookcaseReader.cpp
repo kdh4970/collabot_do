@@ -1,21 +1,23 @@
-#include<BookcaseReader.h>
+#include"BookcaseReader.h"
 
-BookcaseReader::BookcaseReader()
-: _count(0) {};
-
-BookcaseReader::init(HardwareSerial& serial, int baudrate, ros::NodeHandle& nh)
+BookcaseReader::BookcaseReader(HardwareSerial& serial, ros::NodeHandle& nh)
+: _count(0), bluetooth_input_pub("bluetooth_input", &pub_data)
 {
-  _serial=serial;
-  _nh=nh; 
+  _serial = serial;
+  this->_nh = &nh;
+};
+
+void BookcaseReader::init(int baudrate)
+{
   _serial.begin(baudrate);
-  bluetooth_input_pub = _nh.advertise<std_msgs::String>("bluetooth_input", 1);
+  this->_nh->advertise(bluetooth_input_pub);
 }
 
-BookcaseReader::read()
+void BookcaseReader::read()
 {
   if (_serial.available())
   {
-    read_data = Serial2.readStringUntil(' ');
+    read_data = _serial.readStringUntil(' ');
     if(read_data =="reset"){
       pub_data.data = read_data.c_str();
       _count = 0;
@@ -37,7 +39,7 @@ BookcaseReader::read()
 
 }
 
-BookcaseReader::clear_msg()
+void BookcaseReader::clear_msg()
 {
   read_data.remove(0);
   pub_data.data = "";
