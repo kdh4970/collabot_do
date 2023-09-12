@@ -3,7 +3,7 @@
 #include <std_msgs/String.h>
 // #include <std_msgs/Int32.h>
 #include <DynamixelWorkbench.h>
-
+#include <BookcaseReader.h>
 #if defined(__OPENCM904__)
 #define DEVICE_NAME "3" //Dynamixel on Serial3(USART3)  <-OpenCM 485EXP
 #elif defined(__OPENCR__)
@@ -23,17 +23,15 @@
 #define MOTOR9  9
 
 DynamixelWorkbench dxl_wb;
-
+BookcaseReader bookcaseReader;
 //ros node Handle
 ros::NodeHandle nh;
 
-std_msgs::String input_data;
 std_msgs::Int32 total_count;
 std_msgs::String state;
 
 //make publisher
 // ros::Publisher bookcase_num_pub("bookcase_num",  &moter_num);
-ros::Publisher bluetooth_input_pub("bluetooth_input",&input_data);
 // ros::Publisher count_pub("count",  &total_count);
 
 int isclose {};
@@ -97,7 +95,6 @@ void CloseBookcase(int montor_num){
 }
 
 void Reset(){
-  count = 0; //다른데서 빼기
   for(int i{1};i<10;i++) CloseBookcase(i);
 }
 
@@ -120,15 +117,16 @@ uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, 
 void setup() {
 
   nh.initNode();
-  nh.advertise(bookcase_num_pub);
-  nh.advertise(count_pub);
+  // nh.advertise(bookcase_num_pub);
+  // nh.advertise(count_pub);
   nh.subscribe(close_flag);
   nh.subscribe(command);
   // for(int i{1};i<10;i++) nh.setParam("bookcase_state" + String(i), "closed");
   
   
   Serial.begin(9600);
-  Serial2.begin(9600);
+  // Serial2.begin(9600);
+  bookcaseReader.init(Serial2, 9600, nh);
 
   pinMode(7, OUTPUT);
 }
@@ -228,24 +226,7 @@ void loop() {
 
   // do added start
   while (Serial2.available()) {
-    // reading data from bluetooth and publish it
-    String data = Serial2.readStringUntil(' ');
-    if(data =="reset"){
-      input_data.data = data.c_str();
-      count = 0;
-      // total_count.data = count; 
-      bluetooth_input_pub.publish(&input_data);
-      // count_pub.publish(&total_count);
-    }
-    else if(data.substring(0,4) == "book"){
-      count++;
-      data.concat("#");
-      data.concat(count);
-      input_data.data = data.c_str();
-      // total_count.data = count;
-      bluetooth_input_pub.publish(&input_data); // publish data : book1#1
-      // count_pub.publish(&total_count);
-    }
+    bookcaseReader.read();
     cmd_action = "";
     cmd_target = "";
     

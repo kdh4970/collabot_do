@@ -3,21 +3,23 @@ import rospy
 from std_msgs.msg import String, Int32
 from rospy.node import Node
 from azbt_msgs.msg import Elem, bt_data
+import deque
+
 
 class App(Node):
     def __init__(self):
         super().__init__("Collabot_main")
         self.bodytracker_sub = self.create_subscriber(bt_data, "bt_result", self.bt_callback)
         self.bookcase_num_sub = self.create_subscriber(String, "bookcase_num", self.bookcase_callback)
-        self.bookcase_state_sub = self.create_subscriber(String, "bookcase_state", self.bookcase_state_callback)
-        self.count_sub = self.create_subscriber(Int32, "count", self.count_callback)
-        self.ssim_sub = self.create_subscriber(Float32, "SSIM", self.ssim_callback)
-        self.grad_sub = self.create_subscriber(Float32, "GRAD", self.grad_callback)
         self.change_sub = self.create_subscriber(String, "change", self.change_callback)
         # set ros parameter
-        self.command_pub = self.create_publisher(String, "cmd", 10)
+        for _ in range(1,10): rospy.set_param("bookcase_state"+str(_), "closed")
+        self.bookcase_state = [rospy.get_param("bookcase_state"+str(_)) for _ in range(1,10)]
+        self.cmd_opencr_pub = self.create_publisher(String, "cmd_opencr", 10)
+        self.cmd_turtlebot_pub = self.create_publisher(String, "cmd_turtlebot", 10)
 
-        self.height_threshold = rospy.get_param('~height_threshold')
+        self.height_threshold = rospy.get_param('height_threshold')
+        self.taskque = deque()
         self.OnTask = False
         self.ac = None
 
@@ -72,7 +74,7 @@ def main():
     rospy.loginfo("############################################################################# \n\n") 
     app = App()
     while not rospy.is_shutdown():
-        if not app.OnTask: rospy.spinOnce()
+        if not app.OnTask: rospy.spinOnce() # get body tracking data
         
 
 

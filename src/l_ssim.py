@@ -6,7 +6,7 @@ import json
 import copy
 import rospy
 
-from std_msgs.msg import Float32,String
+from std_msgs.msg import Float32,String,Int32
 
 SSIM_THRESHOLD = 0.65
 GRAD_THRESHOLD =15
@@ -30,10 +30,10 @@ class SSIM:
         self.publisher1 = rospy.Publisher('SSIM', Float32, queue_size=10)
         self.publisher2 = rospy.Publisher('GRAD', Float32, queue_size=10)
         self.publisher3 = rospy.Publisher('change', String, queue_size=10)
-        self.subscriber1 = rospy.Subscriber(
-            name='bookcase_state', data_class=String, callback=self.callbackFunction1)
+        # self.subscriber1 = rospy.Subscriber(
+        #     name='bookcase_state', data_class=String, callback=self.callbackFunction1)
         self.subscriber2 = rospy.Subscriber(
-            name="bookcase_num", data_class=String, callback=self.callbackFunction2)
+            name="cmd_opencr", data_class=String, callback=self.callbackFunction2)
         self.rate = rospy.Rate(30) # 0.5hz
 
     def callbackFunction1(self,msg): #기본 argument는 구독한 메세지 객체 
@@ -43,6 +43,8 @@ class SSIM:
 
     def callbackFunction2(self,msg):
         self.bookcase = msg.data
+        if self.bookcase[:4] == 'book':
+            self.state = rospy.get_param("bookcase_state"+self.bookcase[4])
         #rospy.loginfo(self.bookcase)
 
     def ssim_publish(self):
