@@ -1,6 +1,4 @@
 #define USE_USBCON  
-#include <ros.h>
-#include <std_msgs/String.h>
 // #include <std_msgs/Int32.h>
 #include <DynamixelWorkbench.h>
 #include <BookcaseReader.h>
@@ -27,7 +25,7 @@ BookcaseReader bookcaseReader;
 //ros node Handle
 ros::NodeHandle nh;
 
-std_msgs::Int32 total_count;
+// std_msgs::Int32 total_count;
 std_msgs::String state;
 
 //make publisher
@@ -52,7 +50,7 @@ void close_cb(const std_msgs::String& cmd_msg){
 
 //make subscriber
 ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
-
+int motor_open[9] = {0,};
 // cmd parse
 String cmd_action = "";
 String cmd_target = "";
@@ -61,7 +59,7 @@ bool task_flag = false;
 
 void readcmdCallback(const std_msgs::String &msg){
 	cmd = msg.data;
-	int separatorIndex = cmd.indexOf(separator);
+	int separatorIndex = cmd.indexOf(cmd_seperator);
   if (separatorIndex != -1) { // cmd가 book1 open 같은 형태인경우
       cmd_target = cmd.substring(0, separatorIndex);
       cmd_action = cmd.substring(separatorIndex + 1);
@@ -74,29 +72,7 @@ void readcmdCallback(const std_msgs::String &msg){
 
 ros::Subscriber<std_msgs::String> command("cmd_opencr", readcmdCallback); // main에서 퍼블리시할 cmd 토픽 sub
 
-void OpenBookcase(int motor_num){
-  String state="";
-  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
-  nh.getParam("bookcase_state" + String(motor_num), state);
-  if(state == "closed"){
-    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 7900));
-    nh.setParam("bookcase_state" + String(motor_num), "open");
-  }
-}
 
-void CloseBookcase(int montor_num){
-  String state = "";
-  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
-  nh.getParam("bookcase_state" + String(motor_num), state);
-  if(state == "open"){
-    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 100));
-    nh.setParam("bookcase_state" + String(motor_num), "closed");
-  }
-}
-
-void Reset(){
-  for(int i{1};i<10;i++) CloseBookcase(i);
-}
 
 uint16_t model_number = 0;
 int32_t presentposition[13];
@@ -113,6 +89,27 @@ int initial_9 = 0;
 int initial_10 = 0;
 int count = 0;
 uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
+
+void OpenBookcase(int motor_num){
+  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
+  if(motor_open[motor_num-1] == 0){
+    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 7900));
+    motor_open[motor_num-1] = 1;
+  }
+}
+
+void CloseBookcase(int montor_num){
+  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
+  if(motor_open[motor_num-1] == 1){
+    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 100));
+    motor_open[motor_num-1] = 0;
+  }
+}
+
+void Reset(){
+  for(int i{1};i<10;i++) CloseBookcase(i);
+}
+
 
 void setup() {
 
@@ -225,7 +222,7 @@ void loop() {
   }
 
   // do added start
-  while (Serial2.available()) {
+  while (nh.connected()) {
     bookcaseReader.read();
     cmd_action = "";
     cmd_target = "";
