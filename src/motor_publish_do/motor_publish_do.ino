@@ -1,9 +1,7 @@
 #define USE_USBCON  
-#include <ros.h>
-#include <std_msgs/String.h>
 // #include <std_msgs/Int32.h>
 #include <DynamixelWorkbench.h>
-
+#include "BookcaseReader.h"
 #if defined(__OPENCM904__)
 #define DEVICE_NAME "3" //Dynamixel on Serial3(USART3)  <-OpenCM 485EXP
 #elif defined(__OPENCR__)
@@ -23,22 +21,21 @@
 #define MOTOR9  9
 
 DynamixelWorkbench dxl_wb;
-
 //ros node Handle
-ros::NodeHandle nh;
 
-std_msgs::String input_data;
-std_msgs::Int32 total_count;
+ros::NodeHandle nh;
+BookcaseReader bookcaseReader(Serial2,nh);
 std_msgs::String state;
 
 //make publisher
 // ros::Publisher bookcase_num_pub("bookcase_num",  &moter_num);
-ros::Publisher bluetooth_input_pub("bluetooth_input",&input_data);
 // ros::Publisher count_pub("count",  &total_count);
 
+
+// 바꿔야함.
+/*
 int isclose {};
 
-//make callback function
 void close_cb(const std_msgs::String& cmd_msg){
   //isclose = cmd_msg.data.c_str();
   if (state.data = "open"){
@@ -54,7 +51,8 @@ void close_cb(const std_msgs::String& cmd_msg){
 
 //make subscriber
 ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
-
+*/
+bool motor_open[9] = {false,};
 // cmd parse
 String cmd_action = "";
 String cmd_target = "";
@@ -62,44 +60,21 @@ char cmd_seperator = ' ';
 bool task_flag = false;
 
 void readcmdCallback(const std_msgs::String &msg){
-	cmd = msg.data;
-	int separatorIndex = cmd.indexOf(separator);
-  if (separatorIndex != -1) { // cmd가 book1 open 같은 형태인경우
+	String cmd = "";
+  cmd = msg.data;
+	int separatorIndex = cmd.indexOf(cmd_seperator);
+  if (separatorIndex != -1) { // cmd book1 open
       cmd_target = cmd.substring(0, separatorIndex);
       cmd_action = cmd.substring(separatorIndex + 1);
   } 
-	else { // cmd 가 reset 같은 형태인 경우
+	else { // cmd 가 reset, done
       cmd_action = cmd;
 			cmd_target = "";
   }
 }
 
-ros::Subscriber<std_msgs::String> command("cmd_opencr", readcmdCallback); // main에서 퍼블리시할 cmd 토픽 sub
-
-void OpenBookcase(int motor_num){
-  String state="";
-  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
-  nh.getParam("bookcase_state" + String(motor_num), state);
-  if(state == "closed"){
-    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 7900));
-    nh.setParam("bookcase_state" + String(motor_num), "open");
-  }
-}
-
-void CloseBookcase(int montor_num){
-  String state = "";
-  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
-  nh.getParam("bookcase_state" + String(motor_num), state);
-  if(state == "open"){
-    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 100));
-    nh.setParam("bookcase_state" + String(motor_num), "closed");
-  }
-}
-
-void Reset(){
-  count = 0; //다른데서 빼기
-  for(int i{1};i<10;i++) CloseBookcase(i);
-}
+// bookN open / bookN close / reset / done     (N = 1~9)
+ros::Subscriber<std_msgs::String> command("set_bookcase", readcmdCallback); 
 
 uint16_t model_number = 0;
 int32_t presentposition[13];
@@ -114,21 +89,39 @@ int initial_7 = 0;
 int initial_8 = 0;
 int initial_9 = 0;
 int initial_10 = 0;
-int count = 0;
+// int count = 0;
 uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
 
-void setup() {
+void OpenBookcase(int motor_num){
+  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
+  if(!motor_open[motor_num-1]){
+    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 7900));
+    motor_open[motor_num-1] = true;
+  }
+}
 
+void CloseBookcase(int motor_num){
+  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
+  if(motor_open[motor_num-1]){
+    dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 100));
+    motor_open[motor_num-1] = false;
+  }
+}
+
+void Reset(){
+  for(int i{1};i<10;i++) CloseBookcase(i);
+}
+
+void setup() {
   nh.initNode();
-  nh.advertise(bookcase_num_pub);
-  nh.advertise(count_pub);
-  nh.subscribe(close_flag);
+  // nh.advertise(bookcase_num_pub);
+  // nh.advertise(count_pub);
+  // nh.subscribe(close_flag);
   nh.subscribe(command);
-  // for(int i{1};i<10;i++) nh.setParam("bookcase_state" + String(i), "closed");
-  
   
   Serial.begin(9600);
-  Serial2.begin(9600);
+  // Serial2.begin(9600);
+  bookcaseReader.init(9600);
 
   pinMode(7, OUTPUT);
 }
@@ -137,49 +130,52 @@ void loop() {
   const char *log;
   dxl_wb.init(DEVICE_NAME, BAUDRATE, &log);
 
-  dxl_wb.ping(motor[1], &model_number, &log); 
-  dxl_wb.ping(motor[2], &model_number, &log);
-  dxl_wb.ping(motor[3], &model_number, &log);
-  dxl_wb.ping(motor[4], &model_number, &log);
-  dxl_wb.ping(motor[5], &model_number, &log);
-  dxl_wb.ping(motor[6], &model_number, &log);
-  dxl_wb.ping(motor[7], &model_number, &log);
-  dxl_wb.ping(motor[8], &model_number, &log);
-  dxl_wb.ping(motor[9], &model_number, &log);
-  //dxl_wb.ping(motor[10], &model_number, &log);
+  for(int i{1};i<10;i++){
+    dxl_wb.ping(motor[i], &model_number, &log);
+    dxl_wb.setExtendedPositionControlMode(motor[i], &log);
+    dxl_wb.torqueOn(motor[i], &log);
+    dxl_wb.getPresentPositionData(motor[i], &presentposition[i], &log);
+  }
 
-  dxl_wb.setExtendedPositionControlMode(motor[1], &log); 
-  dxl_wb.setExtendedPositionControlMode(motor[2], &log);
-  dxl_wb.setExtendedPositionControlMode(motor[3], &log);
-  dxl_wb.setExtendedPositionControlMode(motor[4], &log);
-  dxl_wb.setExtendedPositionControlMode(motor[5], &log);
-  dxl_wb.setExtendedPositionControlMode(motor[6], &log);
-  dxl_wb.setExtendedPositionControlMode(motor[7], &log);
-  dxl_wb.setExtendedPositionControlMode(motor[8], &log);
-  dxl_wb.setExtendedPositionControlMode(motor[9], &log);
-  //dxl_wb.setExtendedPositionControlMode(motor[10], &log);
+  // dxl_wb.ping(motor[1], &model_number, &log); 
+  // dxl_wb.ping(motor[2], &model_number, &log);
+  // dxl_wb.ping(motor[3], &model_number, &log);
+  // dxl_wb.ping(motor[4], &model_number, &log);
+  // dxl_wb.ping(motor[5], &model_number, &log);
+  // dxl_wb.ping(motor[6], &model_number, &log);
+  // dxl_wb.ping(motor[7], &model_number, &log);
+  // dxl_wb.ping(motor[8], &model_number, &log);
+  // dxl_wb.ping(motor[9], &model_number, &log);
 
-  dxl_wb.torqueOn(motor[1], &log);
-  dxl_wb.torqueOn(motor[2], &log);
-  dxl_wb.torqueOn(motor[3], &log);
-  dxl_wb.torqueOn(motor[4], &log);
-  dxl_wb.torqueOn(motor[5], &log);
-  dxl_wb.torqueOn(motor[6], &log);
-  dxl_wb.torqueOn(motor[7], &log);
-  dxl_wb.torqueOn(motor[8], &log);
-  dxl_wb.torqueOn(motor[9], &log);
-  //dxl_wb.torqueOn(motor[10], &log);
+  // dxl_wb.setExtendedPositionControlMode(motor[1], &log); 
+  // dxl_wb.setExtendedPositionControlMode(motor[2], &log);
+  // dxl_wb.setExtendedPositionControlMode(motor[3], &log);
+  // dxl_wb.setExtendedPositionControlMode(motor[4], &log);
+  // dxl_wb.setExtendedPositionControlMode(motor[5], &log);
+  // dxl_wb.setExtendedPositionControlMode(motor[6], &log);
+  // dxl_wb.setExtendedPositionControlMode(motor[7], &log);
+  // dxl_wb.setExtendedPositionControlMode(motor[8], &log);
+  // dxl_wb.setExtendedPositionControlMode(motor[9], &log);
+
+  // dxl_wb.torqueOn(motor[1], &log);
+  // dxl_wb.torqueOn(motor[2], &log);
+  // dxl_wb.torqueOn(motor[3], &log);
+  // dxl_wb.torqueOn(motor[4], &log);
+  // dxl_wb.torqueOn(motor[5], &log);
+  // dxl_wb.torqueOn(motor[6], &log);
+  // dxl_wb.torqueOn(motor[7], &log);
+  // dxl_wb.torqueOn(motor[8], &log);
+  // dxl_wb.torqueOn(motor[9], &log);
  
-  dxl_wb.getPresentPositionData(motor[1], &presentposition[1], &log); 
-  dxl_wb.getPresentPositionData(motor[2], &presentposition[2], &log);
-  dxl_wb.getPresentPositionData(motor[3], &presentposition[3], &log);
-  dxl_wb.getPresentPositionData(motor[4], &presentposition[4], &log);
-  dxl_wb.getPresentPositionData(motor[5], &presentposition[5], &log);
-  dxl_wb.getPresentPositionData(motor[6], &presentposition[6], &log);
-  dxl_wb.getPresentPositionData(motor[7], &presentposition[7], &log);
-  dxl_wb.getPresentPositionData(motor[8], &presentposition[8], &log);
-  dxl_wb.getPresentPositionData(motor[9], &presentposition[9], &log);
-  //dxl_wb.getPresentPositionData(motor[10], &presentposition[10], &log);
+  // dxl_wb.getPresentPositionData(motor[1], &presentposition[1], &log); 
+  // dxl_wb.getPresentPositionData(motor[2], &presentposition[2], &log);
+  // dxl_wb.getPresentPositionData(motor[3], &presentposition[3], &log);
+  // dxl_wb.getPresentPositionData(motor[4], &presentposition[4], &log);
+  // dxl_wb.getPresentPositionData(motor[5], &presentposition[5], &log);
+  // dxl_wb.getPresentPositionData(motor[6], &presentposition[6], &log);
+  // dxl_wb.getPresentPositionData(motor[7], &presentposition[7], &log);
+  // dxl_wb.getPresentPositionData(motor[8], &presentposition[8], &log);
+  // dxl_wb.getPresentPositionData(motor[9], &presentposition[9], &log);
 
   if (initial_1 == 0) {
     initial_pos[1] = presentposition[1];
@@ -227,28 +223,10 @@ void loop() {
   }
 
   // do added start
-  while (Serial2.available()) {
-    // reading data from bluetooth and publish it
-    String data = Serial2.readStringUntil(' ');
-    if(data =="reset"){
-      input_data.data = data.c_str();
-      count = 0;
-      // total_count.data = count; 
-      bluetooth_input_pub.publish(&input_data);
-      // count_pub.publish(&total_count);
-    }
-    else if(data.substring(0,4) == "book"){
-      count++;
-      data.concat("#");
-      data.concat(count);
-      input_data.data = data.c_str();
-      // total_count.data = count;
-      bluetooth_input_pub.publish(&input_data); // publish data : book1#1
-      // count_pub.publish(&total_count);
-    }
+  while (nh.connected()) {
+    bookcaseReader.read();
     cmd_action = "";
     cmd_target = "";
-    
     
     nh.spinOnce();
     if(cmd_action == "open"){

@@ -12,8 +12,8 @@ public:
   void read();
   
 private:
-  HardwareSerial& _serial;
   int _count;
+  HardwareSerial& _serial;
   String read_data;
   std_msgs::String pub_data;
   ros::NodeHandle* _nh;
