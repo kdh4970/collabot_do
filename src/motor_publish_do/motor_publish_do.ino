@@ -21,7 +21,6 @@
 #define MOTOR9  9
 
 DynamixelWorkbench dxl_wb;
-//ros node Handle
 
 ros::NodeHandle nh;
 BookcaseReader bookcaseReader(Serial2,nh);
@@ -53,44 +52,8 @@ void close_cb(const std_msgs::String& cmd_msg){
 ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
 */
 bool motor_open[9] = {false,};
-// cmd parse
-String cmd_action = "";
-String cmd_target = "";
-char cmd_seperator = ' ';
+
 bool task_flag = false;
-
-void readcmdCallback(const std_msgs::String &msg){
-	String cmd = "";
-  cmd = msg.data;
-	int separatorIndex = cmd.indexOf(cmd_seperator);
-  if (separatorIndex != -1) { // cmd book1 open
-      cmd_target = cmd.substring(0, separatorIndex);
-      cmd_action = cmd.substring(separatorIndex + 1);
-  } 
-	else { // cmd 가 reset, done
-      cmd_action = cmd;
-			cmd_target = "";
-  }
-}
-
-// bookN open / bookN close / reset / done     (N = 1~9)
-ros::Subscriber<std_msgs::String> command("set_bookcase", readcmdCallback); 
-
-uint16_t model_number = 0;
-int32_t presentposition[13];
-int initial_pos[13] = {0,};
-int initial_1 = 0;
-int initial_2 = 0;
-int initial_3 = 0;
-int initial_4 = 0;
-int initial_5 = 0;
-int initial_6 = 0;
-int initial_7 = 0;
-int initial_8 = 0;
-int initial_9 = 0;
-int initial_10 = 0;
-// int count = 0;
-uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
 
 void OpenBookcase(int motor_num){
   if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
@@ -112,15 +75,68 @@ void Reset(){
   for(int i{1};i<10;i++) CloseBookcase(i);
 }
 
+void run(const String action,const String target){
+  if(action == "open"){
+    OpenBookcase(target.substring(4).toInt());
+  }
+  else if(action == "close"){
+    CloseBookcase(target.substring(4).toInt());
+  }
+  else if(action == "done"){
+    // task_flag = false;
+    action.remove(0);
+    target.remove(0);
+  }
+  else if(action == "reset"){
+    Reset();
+  }
+}
+
+void readcmdCallback(const std_msgs::String &msg){
+	String cmd = "";
+  String cmd_action = "";
+  String cmd_target = "";
+  char cmd_seperator = ' ';
+  cmd = msg.data;
+  nh.loginfo("Received Command : " + cmd.c_str());
+	int separatorIndex = cmd.indexOf(cmd_seperator);
+  if (separatorIndex != -1) { // cmd book1 open
+      cmd_target = cmd.substring(0, separatorIndex);
+      cmd_action = cmd.substring(separatorIndex + 1);
+  } 
+	else {
+      cmd_action = cmd;
+			cmd_target = "";
+  }
+  run(cmd_action, cmd_target);
+}
+
+// bookN open / bookN close / reset / done     (N = 1~9)
+ros::Subscriber<std_msgs::String> command("set_bookcase", readcmdCallback); 
+
+uint16_t model_number = 0;
+int32_t presentposition[13];
+int initial_pos[13] = {0,};
+int initial_1 = 0;
+int initial_2 = 0;
+int initial_3 = 0;
+int initial_4 = 0;
+int initial_5 = 0;
+int initial_6 = 0;
+int initial_7 = 0;
+int initial_8 = 0;
+int initial_9 = 0;
+int initial_10 = 0;
+// int count = 0;
+uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
+
+
+
 void setup() {
   nh.initNode();
-  // nh.advertise(bookcase_num_pub);
-  // nh.advertise(count_pub);
-  // nh.subscribe(close_flag);
   nh.subscribe(command);
   
   Serial.begin(9600);
-  // Serial2.begin(9600);
   bookcaseReader.init(9600);
 
   pinMode(7, OUTPUT);
@@ -137,45 +153,6 @@ void loop() {
     dxl_wb.getPresentPositionData(motor[i], &presentposition[i], &log);
   }
 
-  // dxl_wb.ping(motor[1], &model_number, &log); 
-  // dxl_wb.ping(motor[2], &model_number, &log);
-  // dxl_wb.ping(motor[3], &model_number, &log);
-  // dxl_wb.ping(motor[4], &model_number, &log);
-  // dxl_wb.ping(motor[5], &model_number, &log);
-  // dxl_wb.ping(motor[6], &model_number, &log);
-  // dxl_wb.ping(motor[7], &model_number, &log);
-  // dxl_wb.ping(motor[8], &model_number, &log);
-  // dxl_wb.ping(motor[9], &model_number, &log);
-
-  // dxl_wb.setExtendedPositionControlMode(motor[1], &log); 
-  // dxl_wb.setExtendedPositionControlMode(motor[2], &log);
-  // dxl_wb.setExtendedPositionControlMode(motor[3], &log);
-  // dxl_wb.setExtendedPositionControlMode(motor[4], &log);
-  // dxl_wb.setExtendedPositionControlMode(motor[5], &log);
-  // dxl_wb.setExtendedPositionControlMode(motor[6], &log);
-  // dxl_wb.setExtendedPositionControlMode(motor[7], &log);
-  // dxl_wb.setExtendedPositionControlMode(motor[8], &log);
-  // dxl_wb.setExtendedPositionControlMode(motor[9], &log);
-
-  // dxl_wb.torqueOn(motor[1], &log);
-  // dxl_wb.torqueOn(motor[2], &log);
-  // dxl_wb.torqueOn(motor[3], &log);
-  // dxl_wb.torqueOn(motor[4], &log);
-  // dxl_wb.torqueOn(motor[5], &log);
-  // dxl_wb.torqueOn(motor[6], &log);
-  // dxl_wb.torqueOn(motor[7], &log);
-  // dxl_wb.torqueOn(motor[8], &log);
-  // dxl_wb.torqueOn(motor[9], &log);
- 
-  // dxl_wb.getPresentPositionData(motor[1], &presentposition[1], &log); 
-  // dxl_wb.getPresentPositionData(motor[2], &presentposition[2], &log);
-  // dxl_wb.getPresentPositionData(motor[3], &presentposition[3], &log);
-  // dxl_wb.getPresentPositionData(motor[4], &presentposition[4], &log);
-  // dxl_wb.getPresentPositionData(motor[5], &presentposition[5], &log);
-  // dxl_wb.getPresentPositionData(motor[6], &presentposition[6], &log);
-  // dxl_wb.getPresentPositionData(motor[7], &presentposition[7], &log);
-  // dxl_wb.getPresentPositionData(motor[8], &presentposition[8], &log);
-  // dxl_wb.getPresentPositionData(motor[9], &presentposition[9], &log);
 
   if (initial_1 == 0) {
     initial_pos[1] = presentposition[1];
@@ -221,29 +198,15 @@ void loop() {
     initial_pos[9] = presentposition[9];
     initial_9++;
   }
+  nh.spinOnce();
+  nh.loginfo("OpenCR Ready!");
 
-  // do added start
-  while (nh.connected()) {
+
+  while (nh.connected()) 
+  {
     bookcaseReader.read();
-    cmd_action = "";
-    cmd_target = "";
     
     nh.spinOnce();
-    if(cmd_action == "open"){
-      OpenBookcase(cmd_target.substring(4).toInt());
-    }
-    else if(cmd_action == "close"){
-      CloseBookcase(cmd_target.substring(4).toInt());
-    }
-    else if(cmd_action == "done"){
-      // task_flag = false;
-      cmd_action = "";
-      cmd_target = "";
-    }
-    else if(cmd_action == "reset"){
-      Reset();
-    }
-    // do added end
   }
 
 }
