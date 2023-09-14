@@ -51,8 +51,23 @@ void close_cb(const std_msgs::String& cmd_msg){
 //make subscriber
 ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
 */
-bool motor_open[9] = {false,};
+uint16_t model_number = 0;
+int32_t presentposition[13];
+int initial_pos[13] = {0,};
+int initial_1 = 0;
+int initial_2 = 0;
+int initial_3 = 0;
+int initial_4 = 0;
+int initial_5 = 0;
+int initial_6 = 0;
+int initial_7 = 0;
+int initial_8 = 0;
+int initial_9 = 0;
+int initial_10 = 0;
+// int count = 0;
 
+bool motor_open[9] = {false,};
+uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
 bool task_flag = false;
 
 void OpenBookcase(int motor_num){
@@ -84,8 +99,7 @@ void run(const String action,const String target){
   }
   else if(action == "done"){
     // task_flag = false;
-    action.remove(0);
-    target.remove(0);
+    int temp=0;
   }
   else if(action == "reset"){
     Reset();
@@ -98,7 +112,7 @@ void readcmdCallback(const std_msgs::String &msg){
   String cmd_target = "";
   char cmd_seperator = ' ';
   cmd = msg.data;
-  nh.loginfo("Received Command : " + cmd.c_str());
+  nh.loginfo("Received Command : " + *cmd.c_str());
 	int separatorIndex = cmd.indexOf(cmd_seperator);
   if (separatorIndex != -1) { // cmd book1 open
       cmd_target = cmd.substring(0, separatorIndex);
@@ -113,23 +127,6 @@ void readcmdCallback(const std_msgs::String &msg){
 
 // bookN open / bookN close / reset / done     (N = 1~9)
 ros::Subscriber<std_msgs::String> command("set_bookcase", readcmdCallback); 
-
-uint16_t model_number = 0;
-int32_t presentposition[13];
-int initial_pos[13] = {0,};
-int initial_1 = 0;
-int initial_2 = 0;
-int initial_3 = 0;
-int initial_4 = 0;
-int initial_5 = 0;
-int initial_6 = 0;
-int initial_7 = 0;
-int initial_8 = 0;
-int initial_9 = 0;
-int initial_10 = 0;
-// int count = 0;
-uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
-
 
 
 void setup() {

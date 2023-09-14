@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import json
 import copy
-import rospy
+import rospy,rospkg
 import sys
 from std_msgs.msg import Float32,String,Int32
 
@@ -78,17 +78,19 @@ class SSIM:
 
 
 if __name__ == '__main__':
+    print("Starting SSIM Node...")
     rospy.init_node('ssim_pub_node', anonymous=True)
     VideoNum = rospy.get_param("~video",0)
+    print(f"TARGET_VIDEO_PATH : /dev/video{VideoNum}")
+    rospack = rospkg.RosPack()
+    json_path = rospack.get_path('collabot_do') + "/utils/ROI.json"
+    print(f"ROI_JSON_PATH : {json_path}")
 
     if len(sys.argv) == 2:
         VideoNum = int(sys.argv[1])
     
     cap = cv2.VideoCapture(VideoNum)
-    json_path = "../utils/ROI.json"
-
     print("camera width : %d, camera height : %d" %(cap.get(cv2.CAP_PROP_FRAME_WIDTH) , cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-
     with open(json_path, "r") as json_file:
         ROI = json.load(json_file)
     # ROI = {#(x,y) (x+w,y+h)
@@ -104,6 +106,7 @@ if __name__ == '__main__':
     past_bookcase_num = ""
     s= SSIM()
     my_lst = []
+    print("SSIM Ready!")
     while cap.isOpened():
         _,src = cap.read()
         curr_cap = src.copy()

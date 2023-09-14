@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from itertools import count,cycle
@@ -8,12 +9,6 @@ import numpy as np
 import time
 import argparse
 
-parser = argparse.ArgumentParser(description='Program for Graph (mode : SSIM/GRAD)')
-parser.add_argument('--mode',help= "Select GRAD or SSIM(default = 'GRAD')",default = 'GRAD')
-
-parser.add_argument('--ST',help= "SSIM Threshold(default = developer setting)",default = 'DEV')
-parser.add_argument('--GT',help= "GRAD Threshold(default = developer setting))",default = 'DEV')
-args = parser.parse_args() #
 
 
 score = None
@@ -30,7 +25,6 @@ FPS = 30
 
 class graph:
     def __init__(self):
-        rospy.init_node('ssim_sub_node', anonymous=True)
         self.subscriber1 = rospy.Subscriber(
             name="SSIM", data_class=Float32, callback=self.callbackFunction1)
         #ros::Publisher bookcase_state("bookcase_state",  &state);
@@ -55,117 +49,124 @@ class graph:
         grad = float(msg.data)
         self.rate.sleep() #100hz가 될때 까지 쉬기
 
-
-
-
 SSIM_THRESHOLD = 0.65
 GRAD_THRESHOLD = 15
 x_max = 500
 
-'''
-[Setting For SSIM Threshold]
-When User input the argument for threshold
-'''
-if args.ST != 'DEV':
-    SSIM_THRESHOLD = args.ST
+if __name__=="__main__":
+    print("Starting SSIM_GRAPH Node...")
+    rospy.init_node('ssim_sub_node', anonymous=True)
 
-if args.GT != 'DEV':
-    GRAD_THRESHOLD = args.GT
+    parser = argparse.ArgumentParser(description='Program for Graph (mode : SSIM/GRAD)')
+    parser.add_argument('--mode',help= "Select GRAD or SSIM(default = 'GRAD')",default = 'GRAD')
 
-print("ST = ", SSIM_THRESHOLD)
-print("GT = ", GRAD_THRESHOLD)
-print("mode  = ", args.mode)
-
-g = graph()
-
-# #그래프 정보 설정
-# plt.tight_layout()
-#plt.xlabel('time') #x 라벨
-#plt.ylabel('Score') #y 라벨
-#plt.title("SSIM") #그래프 이름
+    parser.add_argument('--ST',help= "SSIM Threshold(default = developer setting)",default = 'DEV')
+    parser.add_argument('--GT',help= "GRAD Threshold(default = developer setting))",default = 'DEV')
+    args = parser.parse_args() #
 
 
-''' create the graph'''
-ggraph_x = np.array([])
-ggraph_y = np.array([])
-sgraph_x = np.array([])
-sgraph_y = np.array([])
-lst = [i for i in range(x_max)]
-#index = cycle(lst)
+    '''
+    [Setting For SSIM Threshold]
+    When User input the argument for threshold
+    '''
+    if args.ST != 'DEV':
+        SSIM_THRESHOLD = args.ST
 
-gindex = count()
-sindex = count()
+    if args.GT != 'DEV':
+        GRAD_THRESHOLD = args.GT
 
-fig = plt.figure() #figure(도표생성)
+    print("ST = ", SSIM_THRESHOLD)
+    print("GT = ", GRAD_THRESHOLD)
+    print("mode  = ", args.mode)
 
-ax1 = plt.subplot(211,xlim=(0, x_max), ylim=(0.3, 1)) #ssim
-plt.title("SSIM")
+    g = graph()
 
-ax2 = plt.subplot(212,xlim=(0, x_max), ylim=(0, 30)) #grad
-plt.title("Grad")
-
-
-line1, = ax1.plot([], [], lw=3)
-line2, = ax2.plot([], [], lw=3)
-
-def s_animate(i):
-    global args
-    global ssim_score
-    global sgraph_x
-    global sgraph_y
-    global sindex
-
-    score = ssim_score
-    
-    if next(sindex) >= x_max:
-        sindex = count()
-        sgraph_x,sgraph_y= [],[]
-        ssim_anim.frame_seq = ssim_anim.new_frame_seq()
-        ssim_anim.event_source.start()
-    else:
-        sgraph_x = np.append(sgraph_x,next(sindex))
-        sgraph_y = np.append(sgraph_y,score)
-    line1.set_data(sgraph_x, sgraph_y)
-    return line1,
+    # #그래프 정보 설정
+    # plt.tight_layout()
+    #plt.xlabel('time') #x 라벨
+    #plt.ylabel('Score') #y 라벨
+    #plt.title("SSIM") #그래프 이름
 
 
-def g_animate(i):
-    global args
-    global grad
-    global ggraph_x
-    global ggraph_y
-    global gindex
+    ''' create the graph'''
+    ggraph_x = np.array([])
+    ggraph_y = np.array([])
+    sgraph_x = np.array([])
+    sgraph_y = np.array([])
+    lst = [i for i in range(x_max)]
+    #index = cycle(lst)
 
-    score = grad
+    gindex = count()
+    sindex = count()
 
-    if next(gindex) >= x_max:
-        gindex = count()
-        ggraph_x,ggraph_y= [],[]
-        grad_anim.frame_seq = grad_anim.new_frame_seq()
-        grad_anim.event_source.start()
-    else:
+    fig = plt.figure() #figure(도표생성)
 
-        ggraph_x = np.append(ggraph_x,next(gindex))
-        ggraph_y = np.append(ggraph_y,score)
-    line2.set_data(ggraph_x, ggraph_y)
-    return line2,
+    ax1 = plt.subplot(211,xlim=(0, x_max), ylim=(0.3, 1)) #ssim
+    plt.title("SSIM")
 
-#plt.plot(graph_x,graph_y,color='blue',linestyle='-',marker='o')
-if (score == None):
-    score = 0
+    ax2 = plt.subplot(212,xlim=(0, x_max), ylim=(0, 30)) #grad
+    plt.title("Grad")
 
 
-ssim_anim = FuncAnimation(fig, s_animate,interval=100,repeat = True)
-grad_anim = FuncAnimation(fig, g_animate,interval=100,repeat = True)
-#frames=200
+    line1, = ax1.plot([], [], lw=3)
+    line2, = ax2.plot([], [], lw=3)
+
+    def s_animate(i):
+        global args
+        global ssim_score
+        global sgraph_x
+        global sgraph_y
+        global sindex
+
+        score = ssim_score
+        
+        if next(sindex) >= x_max:
+            sindex = count()
+            sgraph_x,sgraph_y= [],[]
+            ssim_anim.frame_seq = ssim_anim.new_frame_seq()
+            ssim_anim.event_source.start()
+        else:
+            sgraph_x = np.append(sgraph_x,next(sindex))
+            sgraph_y = np.append(sgraph_y,score)
+        line1.set_data(sgraph_x, sgraph_y)
+        return line1,
 
 
-ax1.hlines(SSIM_THRESHOLD, 0, x_max, color='green', linestyle='solid', linewidth=3)
-ax2.hlines(GRAD_THRESHOLD, 0, x_max, color='green', linestyle='solid', linewidth=3)
-# args.mode == 'SSIM':
+    def g_animate(i):
+        global args
+        global grad
+        global ggraph_x
+        global ggraph_y
+        global gindex
 
-plt.tight_layout(h_pad=3)#, w_pad=8)
-plt.show()
+        score = grad
+
+        if next(gindex) >= x_max:
+            gindex = count()
+            ggraph_x,ggraph_y= [],[]
+            grad_anim.frame_seq = grad_anim.new_frame_seq()
+            grad_anim.event_source.start()
+        else:
+
+            ggraph_x = np.append(ggraph_x,next(gindex))
+            ggraph_y = np.append(ggraph_y,score)
+        line2.set_data(ggraph_x, ggraph_y)
+        return line2,
+
+    #plt.plot(graph_x,graph_y,color='blue',linestyle='-',marker='o')
+    if (score == None):
+        score = 0
 
 
-cv2.destroyAllWindows()
+    ssim_anim = FuncAnimation(fig, s_animate,interval=100,repeat = True)
+    grad_anim = FuncAnimation(fig, g_animate,interval=100,repeat = True)
+    #frames=200
+
+
+    ax1.hlines(SSIM_THRESHOLD, 0, x_max, color='green', linestyle='solid', linewidth=3)
+    ax2.hlines(GRAD_THRESHOLD, 0, x_max, color='green', linestyle='solid', linewidth=3)
+    # args.mode == 'SSIM':
+
+    plt.tight_layout(h_pad=3)#, w_pad=8)
+    plt.show()
+    cv2.destroyAllWindows()
