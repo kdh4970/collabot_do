@@ -1,0 +1,82 @@
+[global_config]
+  suppress_multiple_term_dialog = True
+[keybindings]
+[layouts]
+  [[default]]
+    [[[child1]]]
+      parent = window0
+      profile = collabot
+      type = Terminal
+    [[[window0]]]
+      parent = ""
+      type = Window
+  [[collabot]]
+    [[[child0]]]
+      fullscreen = False
+      last_active_term = 8f77acc1-55c8-41b2-98b4-e467fcbc5d88
+      last_active_window = True
+      maximised = False
+      order = 0
+      parent = ""
+      position = 167:127
+      size = 1355, 893
+      title = Collabot
+      type = Window
+    [[[child1]]]
+      order = 0
+      parent = child0
+      position = 666
+      ratio = 0.493333333333
+      type = HPaned
+    [[[child2]]]
+      order = 0
+      parent = child1
+      position = 443
+      ratio = 0.498873873874
+      type = VPaned
+    [[[child5]]]
+      order = 1
+      parent = child1
+      position = 443
+      ratio = 0.498873873874
+      type = VPaned
+    [[[terminal3]]]
+      command = source /opt/ros/melodic/setup.bash;roscore;bash
+      order = 0
+      parent = child2
+      profile = collabot_set
+      title = roscore
+      type = Terminal
+      uuid = 8f77acc1-55c8-41b2-98b4-e467fcbc5d88
+    [[[terminal4]]]
+      command = source /opt/ros/melodic/setup.bash;source ~/catkin_ws1/devel/setup.bash;sleep 1s; rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0;bash
+      order = 1
+      parent = child2
+      profile = collabot_set
+      title = OpenCR
+      type = Terminal
+      uuid = 5862c8a7-63d4-4cc9-915e-12196c1b9cca
+    [[[terminal6]]]
+      command = source /opt/ros/melodic/setup.bash;source ~/catkin_ws1/devel/setup.bash;sleep 1s; rosrun collabot_do l_ssim.py 0;bash
+      order = 0
+      parent = child5
+      profile = collabot_set
+      title = SSIM
+      type = Terminal
+      uuid = ca47c9a4-3e5b-46bc-b54f-5f399e0e3b19
+    [[[terminal7]]]
+      command = source /opt/ros/melodic/setup.bash;source ~/catkin_ws1/devel/setup.bash;sleep 1s; rosrun collabot_do ssim_graph.py;bash
+      order = 1
+      parent = child5
+      profile = collabot_set
+      title = test
+      type = Terminal
+      uuid = 6ddf5566-cced-42af-b475-3558c81ab173
+[plugins]
+[profiles]
+  [[default]]
+    cursor_color = "#aaaaaa"
+  [[collabot_set]]
+    cursor_color = "#aaaaaa"
+    exit_action = hold
+    foreground_color = "#ffffff"

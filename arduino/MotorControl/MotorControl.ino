@@ -54,21 +54,21 @@ ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
 uint16_t model_number = 0;
 int32_t presentposition[13];
 int initial_pos[13] = {0,};
-int initial_1 = 0;
-int initial_2 = 0;
-int initial_3 = 0;
-int initial_4 = 0;
-int initial_5 = 0;
-int initial_6 = 0;
-int initial_7 = 0;
-int initial_8 = 0;
-int initial_9 = 0;
-int initial_10 = 0;
+// int initial_1 = 0;
+// int initial_2 = 0;
+// int initial_3 = 0;
+// int initial_4 = 0;
+// int initial_5 = 0;
+// int initial_6 = 0;
+// int initial_7 = 0;
+// int initial_8 = 0;
+// int initial_9 = 0;
+// int initial_10 = 0;
 // int count = 0;
 
 bool motor_open[9] = {false,};
 uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
-bool task_flag = false;
+bool start_flag = false;
 
 void OpenBookcase(int motor_num){
   if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
@@ -112,7 +112,7 @@ void readcmdCallback(const std_msgs::String &msg){
   String cmd_target = "";
   char cmd_seperator = ' ';
   cmd = msg.data;
-  nh.loginfo("Received Command : " + *cmd.c_str());
+  nh.loginfo("Command Received.");
 	int separatorIndex = cmd.indexOf(cmd_seperator);
   if (separatorIndex != -1) { // cmd book1 open
       cmd_target = cmd.substring(0, separatorIndex);
@@ -132,14 +132,9 @@ ros::Subscriber<std_msgs::String> command("set_bookcase", readcmdCallback);
 void setup() {
   nh.initNode();
   nh.subscribe(command);
-  
   Serial.begin(9600);
   bookcaseReader.init(9600);
 
-  pinMode(7, OUTPUT);
-}
-
-void loop() {
   const char *log;
   dxl_wb.init(DEVICE_NAME, BAUDRATE, &log);
 
@@ -148,61 +143,18 @@ void loop() {
     dxl_wb.setExtendedPositionControlMode(motor[i], &log);
     dxl_wb.torqueOn(motor[i], &log);
     dxl_wb.getPresentPositionData(motor[i], &presentposition[i], &log);
+    initial_pos[i] = presentposition[i];
   }
 
+  pinMode(7, OUTPUT);
+}
 
-  if (initial_1 == 0) {
-    initial_pos[1] = presentposition[1];
-    initial_1++;
-  }
-  
-  if (initial_2 == 0) {
-    initial_pos[2] = presentposition[2];
-    initial_2++;
-  }
-  
-  if (initial_3 == 0) {
-    initial_pos[3] = presentposition[3];
-    initial_3++;
-  } 
-  
-  if (initial_4 == 0) {
-    initial_pos[4] = presentposition[4];
-    initial_4++;
-  }
-
-  if (initial_5 == 0) {
-    initial_pos[5] = presentposition[5];
-    initial_5++;
-  }
-
-  if (initial_6 == 0) {
-    initial_pos[6] = presentposition[6];
-    initial_6++;
-  }
-
-  if (initial_7 == 0) {
-    initial_pos[7] = presentposition[7];
-    initial_7++;
-  }
-
-  if (initial_8 == 0) {
-    initial_pos[8] = presentposition[8];
-    initial_8++;
-  }
-
-  if (initial_9 == 0) {
-    initial_pos[9] = presentposition[9];
-    initial_9++;
-  }
+void loop() {
   nh.spinOnce();
-  nh.loginfo("OpenCR Ready!");
-
-
+  
   while (nh.connected()) 
   {
     bookcaseReader.read();
-    
     nh.spinOnce();
   }
 
