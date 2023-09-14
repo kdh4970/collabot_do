@@ -24,7 +24,7 @@ DynamixelWorkbench dxl_wb;
 
 ros::NodeHandle nh;
 BookcaseReader bookcaseReader(Serial2,nh);
-std_msgs::String state;
+// std_msgs::String state;
 
 //make publisher
 // ros::Publisher bookcase_num_pub("bookcase_num",  &moter_num);
