@@ -42,12 +42,12 @@ class SSIM:
         
 
     def callbackFunction2(self,msg):
-        self.bookcase = msg.data
-        if self.bookcase[:4] == 'book':
-            if self.bookcase[6:] == 'open':
+        if msg.data[:4] == 'book':
+            if msg.data[6:] == 'open':
                 self.state = 'open'
-            elif self.bookcase[6:] == 'close':
+            elif msg.data[6:] == 'close':
                 self.state = 'close'
+        self.bookcase = msg.data[:5]
         #rospy.loginfo(self.bookcase)
 
     def ssim_publish(self):
@@ -82,7 +82,7 @@ class SSIM:
 
 if __name__ == '__main__':
     print("Starting SSIM Node...")
-    rospy.init_node('ssim_pub_node', anonymous=True)
+    rospy.init_node('ssim_pub_node')
     VideoNum = rospy.get_param("~video",0)
     print(f"TARGET_VIDEO_PATH : /dev/video{VideoNum}")
     rospack = rospkg.RosPack()
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     past_bookcase_num = ""
     s= SSIM()
     my_lst = []
-    print("SSIM Ready!")
+    print("========== SSIM Ready! ==========")
     while cap.isOpened():
         _,src = cap.read()
         curr_cap = src.copy()
@@ -179,8 +179,8 @@ if __name__ == '__main__':
             #         cv2.rectangle(src, (x+ROI[bookcase_num]['x1'], y+ROI[bookcase_num]['y1']), (x + w+ROI[bookcase_num]['x1'], y + h+ROI[bookcase_num]['y1']), (0, 0, 255), 2)
             #         cv2.drawContours(curr_crop, [c], -1, (0, 0, 255), 2)
             past_bookcase_num = bookcase_num
-            # cv2.imshow("VideoFrame", src)
-            # cv2.imshow("contour",curr_crop)
+            cv2.imshow("VideoFrame", src)
+            cv2.imshow("contour",curr_crop)
         past_cap = src
         #if cv2.waitKey(1) & 0xFF == ord('q'):
         if cv2.waitKey(int(1000/FPS)) & 0xFF == ord('q'): #FPS 30 =>  Time  = 1000 / FPS

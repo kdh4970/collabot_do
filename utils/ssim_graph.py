@@ -55,7 +55,7 @@ x_max = 500
 
 if __name__=="__main__":
     print("Starting SSIM_GRAPH Node...")
-    rospy.init_node('ssim_sub_node', anonymous=True)
+    rospy.init_node('ssim_sub_node')
 
     parser = argparse.ArgumentParser(description='Program for Graph (mode : SSIM/GRAD)')
     parser.add_argument('--mode',help= "Select GRAD or SSIM(default = 'GRAD')",default = 'GRAD')
@@ -78,7 +78,7 @@ if __name__=="__main__":
     print("ST = ", SSIM_THRESHOLD)
     print("GT = ", GRAD_THRESHOLD)
     print("mode  = ", args.mode)
-
+    print("========== SSIM graph Ready! ==========")
     g = graph()
 
     # #그래프 정보 설정
