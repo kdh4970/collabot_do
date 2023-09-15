@@ -33,7 +33,7 @@ class SSIM:
         # self.subscriber1 = rospy.Subscriber(
         #     name='bookcase_state', data_class=String, callback=self.callbackFunction1)
         self.subscriber2 = rospy.Subscriber(
-            name="cmd_opencr", data_class=String, callback=self.callbackFunction2)
+            name="set_bookcase", data_class=String, callback=self.callbackFunction2)
         self.rate = rospy.Rate(30) # 0.5hz
 
     def callbackFunction1(self,msg): #기본 argument는 구독한 메세지 객체 
@@ -44,7 +44,10 @@ class SSIM:
     def callbackFunction2(self,msg):
         self.bookcase = msg.data
         if self.bookcase[:4] == 'book':
-            self.state = rospy.get_param("bookcase_state"+self.bookcase[4])
+            if self.bookcase[6:] == 'open':
+                self.state = 'open'
+            elif self.bookcase[6:] == 'close':
+                self.state = 'close'
         #rospy.loginfo(self.bookcase)
 
     def ssim_publish(self):
@@ -84,7 +87,7 @@ if __name__ == '__main__':
     print(f"TARGET_VIDEO_PATH : /dev/video{VideoNum}")
     rospack = rospkg.RosPack()
     json_path = rospack.get_path('collabot_do') + "/utils/ROI.json"
-    print(f"ROI_JSON_PATH : {json_path}")
+    print(f"ROI_JSON_PATH     : {json_path}")
 
     if len(sys.argv) == 2:
         VideoNum = int(sys.argv[1])

@@ -33,6 +33,11 @@ void BookcaseReader::read()
   }
 }
 
+void BookcaseReader::reset()
+{
+  _count = 0;
+}
+
 void BookcaseReader::clear_msg()
 {
   read_data.remove(0);

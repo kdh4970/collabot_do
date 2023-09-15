@@ -54,22 +54,13 @@ ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
 uint16_t model_number = 0;
 int32_t presentposition[13];
 int initial_pos[13] = {0,};
-// int initial_1 = 0;
-// int initial_2 = 0;
-// int initial_3 = 0;
-// int initial_4 = 0;
-// int initial_5 = 0;
-// int initial_6 = 0;
-// int initial_7 = 0;
-// int initial_8 = 0;
-// int initial_9 = 0;
-// int initial_10 = 0;
-// int count = 0;
 
 bool motor_open[9] = {false,};
 uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
 bool start_flag = false;
 
+
+// Open the bookcase of given motor_num
 void OpenBookcase(int motor_num){
   if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
   if(!motor_open[motor_num-1]){
@@ -78,6 +69,7 @@ void OpenBookcase(int motor_num){
   }
 }
 
+// Close the bookcase of given motor_num
 void CloseBookcase(int motor_num){
   if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
   if(motor_open[motor_num-1]){
@@ -86,10 +78,13 @@ void CloseBookcase(int motor_num){
   }
 }
 
+// Reset all bookcase, and reader's count
 void Reset(){
   for(int i{1};i<10;i++) CloseBookcase(i);
+  bookcaseReader.reset();
 }
 
+// The function that run the motor of given action and target.
 void run(const String action,const String target){
   if(action == "open"){
     OpenBookcase(target.substring(4).toInt());
@@ -106,6 +101,9 @@ void run(const String action,const String target){
   }
 }
 
+
+
+// The callback function of the topic set_bookcasae. seperate the target and action.
 void readcmdCallback(const std_msgs::String &msg){
 	String cmd = "";
   String cmd_action = "";
@@ -154,6 +152,10 @@ void loop() {
   
   while (nh.connected()) 
   {
+    if(start_flag == false){
+      nh.loginfo("OpenCR Ready!");
+      start_flag = true;
+    }
     bookcaseReader.read();
     nh.spinOnce();
   }
