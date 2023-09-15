@@ -80,7 +80,7 @@ void CloseBookcase(int motor_num){
 
 // Reset all bookcase, and reader's count
 void Reset(){
-  for(int i{1};i<10;i++) CloseBookcase(i);
+  for(size_t i{1};i<10;i++) CloseBookcase(i);
   bookcaseReader.reset();
 }
 
@@ -88,9 +88,17 @@ void Reset(){
 void run(const String action,const String target){
   if(action == "open"){
     OpenBookcase(target.substring(4).toInt());
+    // for(size_t i{1};i<10;i++){
+      // OpenBookcase(i);
+    // }
+
+    
   }
   else if(action == "close"){
     CloseBookcase(target.substring(4).toInt());
+    // for(size_t i{1};i<10;i++){
+    //   CloseBookcase(i);
+    // }
   }
   else if(action == "done"){
     // task_flag = false;
@@ -136,7 +144,7 @@ void setup() {
   const char *log;
   dxl_wb.init(DEVICE_NAME, BAUDRATE, &log);
 
-  for(int i{1};i<10;i++){
+  for(size_t i{1};i<10;i++){
     dxl_wb.ping(motor[i], &model_number, &log);
     dxl_wb.setExtendedPositionControlMode(motor[i], &log);
     dxl_wb.torqueOn(motor[i], &log);
