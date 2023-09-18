@@ -25,7 +25,6 @@ DynamixelWorkbench dxl_wb;
 ros::NodeHandle nh;
 BookcaseReader bookcaseReader(Serial2,nh);
 // std_msgs::String state;
-
 //make publisher
 // ros::Publisher bookcase_num_pub("bookcase_num",  &moter_num);
 // ros::Publisher count_pub("count",  &total_count);
@@ -91,8 +90,6 @@ void run(const String action,const String target){
     // for(size_t i{1};i<10;i++){
       // OpenBookcase(i);
     // }
-
-    
   }
   else if(action == "close"){
     CloseBookcase(target.substring(4).toInt());
@@ -161,7 +158,7 @@ void loop() {
   while (nh.connected()) 
   {
     if(start_flag == false){
-      nh.loginfo("========== OpenCR Ready! ==========");
+      nh.loginfo("OpenCR Ready!");
       start_flag = true;
     }
     bookcaseReader.read();
