@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 import rospy
 from std_msgs.msg import String, Int32
-from rospy.node import Node
 from azbt_msgs.msg import Elem, bt_data
-import deque
+from collections import deque
 import threading
 
 
@@ -14,17 +13,19 @@ change = False
 ac_info = None
 taskflag = False
 
-class MainNode(Node):
+class MainNode():
     def __init__(self):
-        super().__init__("Collabot_main")
-        self.bodytracker_sub = self.create_subscriber(bt_data, "bt_result", self.bt_callback)
-        self.bookcase_num_sub = self.create_subscriber(String, "bluetooth_input", self.bluetooth_callback)
-        self.change_sub = self.create_subscriber(String, "change", self.change_callback)
-        self.scenario_sub = self.create_subscriber(Int32, "scenario", self.scenario_callback)
+        # self.publisher3 = rospy.Publisher('change', String, queue_size=10)
+        # self.subscriber1 = rospy.Subscriber(
+        #     name='bookcase_state', data_class=String, callback=self.callbackFunction1)
+        self.bodytracker_sub = rospy.Subscriber("bt_result", bt_data, self.bt_callback)
+        self.bookcase_num_sub = rospy.Subscriber("bluetooth_input", String, self.bluetooth_callback)
+        self.change_sub = rospy.Subscriber("change", String, self.change_callback)
+        self.scenario_sub = rospy.Subscriber("scenario", Int32, self.scenario_callback)
 
-        self.set_bookcase_pub = self.create_publisher(String, "set_bookcase", 10)
-        self.cmd_turtlebot_pub = self.create_publisher(String, "cmd_turtlebot", 10)
-        self.height_threshold = rospy.get_param('height_threshold')
+        self.set_bookcase_pub = rospy.Publisher("set_bookcase", String, queue_size=10)
+        self.cmd_turtlebot_pub = rospy.Publisher("cmd_turtlebot", String, queue_size=10)
+        self.height_threshold = rospy.get_param('height_threshold', 150)
         
     def run(self):
         rospy.spin()
