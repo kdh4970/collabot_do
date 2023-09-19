@@ -37,7 +37,7 @@ class SSIM:
         self.rate = rospy.Rate(30) # 0.5hz
 
     def callbackFunction1(self,msg): #기본 argument는 구독한 메세지 객체 
-        #callback : topic이 발행되는 이벤트가 발생하였을 때 event lisner함수를 콜백함수로 요구
+        #callback : topic이 발행되는 이벤트가 발생하였을 때 event listener함수를 콜백함수로 요구
         self.state = msg.data #받아서 상태 저장만
         
 
