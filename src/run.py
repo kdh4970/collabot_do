@@ -5,12 +5,12 @@ from azbt_msgs.msg import Elem, bt_data
 from collections import deque
 import threading
 import signal
-import os,sys,time
+import os,sys, timeit
 
 def signal_handler(sig, frame):
     print('Killing Process...')
     rospy.set_param('kill', True)
-    time.sleep(1.5)
+    rospy.sleep(1.5)
     kill_command = "rosnode kill -a"
     os.system(kill_command)
     sys.exit(0)
@@ -93,7 +93,6 @@ class TaskExecutor:
     def subtask_open(self):
         global taskque
         self.set_bookcase_pub.publish(taskque[0]+" open")
-        time.sleep(5 if taskque[0][4] in ["3","4","8"] else 1.5)
         rospy.loginfo("open")
 
     def subtask_close(self):

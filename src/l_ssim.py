@@ -7,7 +7,6 @@ import copy
 import rospy,rospkg
 import sys
 from std_msgs.msg import Float32,String,Int32
-import time
 SSIM_THRESHOLD = 0.65
 GRAD_THRESHOLD =15
 FPS = 30
@@ -46,9 +45,9 @@ class SSIM:
 
     def callbackFunction2(self,msg):
         if msg.data[:4] == 'book':
-            time.sleep(5 if msg.data[4] in ["3","4","8"] else 1.5)
             if msg.data[6:] == 'open':
                 self.state = 'open'
+                self.opentime = rospy.Time.now()
             elif msg.data[6:] == 'close':
                 self.state = 'close'
         self.bookcase = msg.data[:5]
@@ -122,8 +121,9 @@ if __name__ == '__main__':
 
         bookcase_num = s.bookcase
         #bookcase_num = "book9" #임시 나중에 빼기
+        curr_time = rospy.Time.now()
 
-        if s.bookcase == None or s.bookcase == 'reset' or s.state == "close":
+        if s.bookcase == None or s.bookcase == 'reset' or s.state == "close" or curr_time - s.opentime < rospy.Duration(5):
             continue
 
         if past_bookcase_num == "" or past_bookcase_num != bookcase_num:
