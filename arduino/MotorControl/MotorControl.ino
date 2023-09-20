@@ -157,6 +157,11 @@ void loop() {
   
   while (nh.connected()) 
   {
+    if(nh.getParam("kill")){
+      nh.loginfo("Killing Process...");
+      nh.shutdown();
+      return;
+    }
     if(start_flag == false){
       nh.loginfo("OpenCR Ready!");
       start_flag = true;

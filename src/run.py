@@ -4,7 +4,15 @@ from std_msgs.msg import String, Int32
 from azbt_msgs.msg import Elem, bt_data
 from collections import deque
 import threading
+import signal
+import sys
 
+def signal_handler(sig, frame):
+    print('Killing process...')
+    rospy.set_param('kill', True)
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 scenario = None
 count = 0
@@ -13,7 +21,7 @@ change = False
 ac_info = None
 taskflag = False
 
-class MainNode():
+class Sub():
     def __init__(self):
         # self.publisher3 = rospy.Publisher('change', String, queue_size=10)
         # self.subscriber1 = rospy.Subscriber(
@@ -22,9 +30,8 @@ class MainNode():
         self.bookcase_num_sub = rospy.Subscriber("bluetooth_input", String, self.bluetooth_callback)
         self.change_sub = rospy.Subscriber("change", String, self.change_callback)
         self.scenario_sub = rospy.Subscriber("scenario", Int32, self.scenario_callback)
-
-        self.set_bookcase_pub = rospy.Publisher("set_bookcase", String, queue_size=10)
-        self.cmd_turtlebot_pub = rospy.Publisher("cmd_turtlebot", String, queue_size=10)
+        
+        rospy.set_param('kill', False)
         self.height_threshold = rospy.get_param('height_threshold', 150)
         
     def run(self):
@@ -38,6 +45,7 @@ class MainNode():
         global taskque, taskflag
         input_cmd = msg.data
         taskque.append(input_cmd)
+        rospy.loginfo("Received bluetooth input: {}".format(input_cmd))
 
     def bt_callback(self, msg):
         # get body tracking data
@@ -70,14 +78,15 @@ class MainNode():
         global change
         if msg.data == "diff":
             change = True
+            rospy.loginfo("change flag")
         else:
             pass
 
 
 class TaskExecutor:
-    def __init__(self, cmd_turtlebot_pub, set_bookcase_pub):
-        self.cmd_turtlebot_pub = cmd_turtlebot_pub
-        self.set_bookcase_pub = set_bookcase_pub
+    def __init__(self):
+        self.set_bookcase_pub = rospy.Publisher("set_bookcase", String, queue_size=10)
+        self.cmd_turtlebot_pub = rospy.Publisher("cmd_turtlebot", String, queue_size=10)
 
     def subtask_open(self):
         global taskque
@@ -134,28 +143,29 @@ class TaskExecutor:
 
 def main():
     rospy.init_node("Collabot_main")
-    rospy.loginfo("#############################################################################")
-    rospy.loginfo("##                                                                         ##")
-    rospy.loginfo("##       ####    ####     ##  ##     ##     #####     ####    ########     ##")
-    rospy.loginfo("##     ##      ##    ##   ##  ##   ##  ##   ##  ##  ##    ##     ##        ##")
-    rospy.loginfo("##    ##      ##      ##  ##  ##  ########  #####  ##      ##    ##        ##")
-    rospy.loginfo("##     ##      ##    ##   ##  ##  ##    ##  ##  ##  ##    ##     ##        ##")
-    rospy.loginfo("##       ####    ####     ##  ##  ##    ##  #####     ####       ##        ##")
-    rospy.loginfo("##                                                                         ##")
-    rospy.loginfo("############################################################################# \n\n") 
-    node = MainNode()
-    te = TaskExecutor(node.cmd_turtlebot_pub, node.set_bookcase_pub)
-    t1 = threading.Thread(target=node.run)
-    t2 = threading.Thread(target=te.run)
+    print("#############################################################################")
+    print("##                                                                         ##")
+    print("##       ####    ####     ##  ##     ##     #####     ####    ########     ##")
+    print("##     ##      ##    ##   ##  ##   ##  ##   ##  ##  ##    ##     ##        ##")
+    print("##    ##      ##      ##  ##  ##  ########  #####  ##      ##    ##        ##")
+    print("##     ##      ##    ##   ##  ##  ##    ##  ##  ##  ##    ##     ##        ##")
+    print("##       ####    ####     ##  ##  ##    ##  #####     ####       ##        ##")
+    print("##                                                                         ##")
+    print("############################################################################# \n") 
+    rospy.loginfo("Starting Subscriber thread...")
+    Sub = Sub()
+    rospy.loginfo("Starting TaskExecutor thread...")
+    Te = TaskExecutor()
+    t1 = threading.Thread(target=Sub.run)
+    t2 = threading.Thread(target=Te.run)
     t1.start()
     t2.start()
     t1.join()
     t2.join()
+    rospy.loginfo("Main Node Ready.")
+    rospy.loginfo("Press Ctrl+C to exit.")
     while not rospy.is_shutdown():
         rospy.spinOnce()
-        
-        
-    
 
 
 

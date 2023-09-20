@@ -6,7 +6,7 @@ import cv2
 import rospy
 from std_msgs.msg import Float32,String
 import numpy as np
-import time
+import sys
 import argparse
 
 
@@ -22,6 +22,10 @@ FPS = 30
         self.publisher3 = rospy.Publisher('change', String, queue_size=10)
 '''
 
+def kill_process():
+    print('Killing process...')
+    cv2.destroyAllWindows()
+    sys.exit(0)
 
 class graph:
     def __init__(self):
@@ -34,7 +38,9 @@ class graph:
             name="GRAD", data_class=Float32, callback=self.callbackFunction3)
         self.rate = rospy.Rate(30) # 0.5hz
 
-    def callbackFunction1(self,msg): #기본 argument는 구독한 메세지 객체 
+    def callbackFunction1(self,msg): #기본 argument는 구독한 메세지 객체
+        if rospy.get_param('kill'):
+            kill_process()
         global ssim_score
         ssim_score = float(msg.data)
         self.rate.sleep() #100hz가 될때 까지 쉬기

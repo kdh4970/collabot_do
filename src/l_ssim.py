@@ -16,7 +16,9 @@ FPS = 30
 ls -al /dev/video*
 '''
 
-
+def kill_process():
+    print('Killing process...')
+    sys.exit(0)
 #ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
 
 class SSIM:
@@ -111,6 +113,8 @@ if __name__ == '__main__':
     my_lst = []
     print("========== SSIM Ready! ==========")
     while cap.isOpened():
+        if rospy.get_param('kill'):
+            kill_process()
         _,src = cap.read()
         curr_cap = src.copy()
 
