@@ -5,11 +5,14 @@ from azbt_msgs.msg import Elem, bt_data
 from collections import deque
 import threading
 import signal
-import sys
+import os,sys,time
 
 def signal_handler(sig, frame):
-    print('Killing process...')
+    print('Killing Process...')
     rospy.set_param('kill', True)
+    time.sleep(1.5)
+    kill_command = "rosnode kill -a"
+    os.system(kill_command)
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -35,6 +38,9 @@ class Sub():
         self.height_threshold = rospy.get_param('height_threshold', 150)
         
     def run(self):
+        rospy.loginfo("Main Node Ready.")
+        rospy.loginfo("Press Ctrl+C to exit.")
+        rospy.loginfo("Waiting Bluetooth Input...")
         rospy.spin()
 
     def scenario_callback(self, msg):
@@ -54,23 +60,20 @@ class Sub():
             detected_user=[]
             for _ in range(len(msg.data)):
                 elem = Elem()
-                elem.id = msg.data[_].id
+                elem.body_id = msg.data[_].body_id
                 elem.length = msg.data[_].length # mm
-                elem.x = msg.data[_].x
-                elem.y = msg.data[_].y
+                elem.location_x = msg.data[_].location_x
+                elem.location_y = msg.data[_].location_y
                 detected_user.append(elem)
             
             length = detected_user[0].length // 10
             # if only one person is detected
             if len(detected_user) == 1:
                 if length == 0:
-                    rospy.loginfo("[az_body_tracker] Not detected.")
                     ac_info = "None"
                 elif length >= self.height_threshold:
-                    rospy.loginfo("[az_body_tracker] Adult")
                     ac_info = "adult"
                 else:
-                    rospy.loginfo("[az_body_tracker] Child")
                     ac_info = "child"
                 pass
 
@@ -78,7 +81,6 @@ class Sub():
         global change
         if msg.data == "diff":
             change = True
-            rospy.loginfo("change flag")
         else:
             pass
 
@@ -90,12 +92,13 @@ class TaskExecutor:
 
     def subtask_open(self):
         global taskque
-        self.set_bookcase_pub.publish(taskque[0]+"open")
+        self.set_bookcase_pub.publish(taskque[0]+" open")
+        time.sleep(5 if taskque[0][4] in ["3","4","8"] else 1.5)
         rospy.loginfo("open")
 
     def subtask_close(self):
         global taskque
-        self.set_bookcase_pub.publish(taskque[0]+"close")
+        self.set_bookcase_pub.publish(taskque[0]+" close")
         rospy.loginfo("close")
 
     def subtask_reset(self):
@@ -111,6 +114,7 @@ class TaskExecutor:
         while True:
             if change:
                 rospy.loginfo("close flag")
+                change = False
                 break
             else:
                 pass
@@ -119,20 +123,27 @@ class TaskExecutor:
         global taskque, change, ac_info, count, taskflag
         while True:
             if len(taskque) != 0: # running task
+                print("+-------------- Task Info --------------+")
+                print(f"Task Queue   : {taskque}")
+                print(f"Current Task : {taskque[0]}")
+                print(f"User         : {ac_info}")
                 taskflag = True
                 if taskque[0][:4] == "book":
-                    if (ac_info == "adult" & count>=3) or ac_info == "child":
+                    count += 1
+                    print(f"Book Count   : {count}")
+                    if (ac_info == "adult" and count>=3) or (ac_info == "child" and taskque[0][4] in ["1","2","3"]):
                         self.subtask_turtlebot_move()
                     self.subtask_open()
                     self.wait_close_flag()
                     self.subtask_close()
-                    count += 1
+                    
                 elif taskque[0] == "reset":
-                    self.subtask_reset()
                     count = 0
+                    print(f"Book Count   : {count}")
+                    self.subtask_reset()
                 else:pass
+                
                 taskque.popleft()
-                change = False
                 ac_info = None
             else: # waiting task
                 taskflag = False
@@ -153,19 +164,17 @@ def main():
     print("##                                                                         ##")
     print("############################################################################# \n") 
     rospy.loginfo("Starting Subscriber thread...")
-    Sub = Sub()
+    sub = Sub()
     rospy.loginfo("Starting TaskExecutor thread...")
     Te = TaskExecutor()
-    t1 = threading.Thread(target=Sub.run)
+    t1 = threading.Thread(target=sub.run)
     t2 = threading.Thread(target=Te.run)
+    t1.daemon=True
+    t2.daemon=True
     t1.start()
     t2.start()
     t1.join()
     t2.join()
-    rospy.loginfo("Main Node Ready.")
-    rospy.loginfo("Press Ctrl+C to exit.")
-    while not rospy.is_shutdown():
-        rospy.spinOnce()
 
 
 

@@ -15,7 +15,7 @@ score = None
 ssim_score = None #Using For Global
 grad = None
 FPS = 30
-
+fig=None
 '''
         self.publisher1 = rospy.Publisher('SSIM', Float32, queue_size=10)
         self.publisher2 = rospy.Publisher('GRAD', Float32, queue_size=10)
@@ -23,7 +23,9 @@ FPS = 30
 '''
 
 def kill_process():
-    print('Killing process...')
+    global fig
+    print('Killing Process...')
+    plt.close(fig=fig)
     cv2.destroyAllWindows()
     sys.exit(0)
 
@@ -39,8 +41,6 @@ class graph:
         self.rate = rospy.Rate(30) # 0.5hz
 
     def callbackFunction1(self,msg): #기본 argument는 구독한 메세지 객체
-        if rospy.get_param('kill'):
-            kill_process()
         global ssim_score
         ssim_score = float(msg.data)
         self.rate.sleep() #100hz가 될때 까지 쉬기
@@ -68,22 +68,22 @@ if __name__=="__main__":
 
     parser.add_argument('--ST',help= "SSIM Threshold(default = developer setting)",default = 'DEV')
     parser.add_argument('--GT',help= "GRAD Threshold(default = developer setting))",default = 'DEV')
-    args = parser.parse_args() #
+    # args = parser.parse_args() #
 
 
     '''
     [Setting For SSIM Threshold]
     When User input the argument for threshold
     '''
-    if args.ST != 'DEV':
-        SSIM_THRESHOLD = args.ST
+    # if args.ST != 'DEV':
+    #     SSIM_THRESHOLD = args.ST
 
-    if args.GT != 'DEV':
-        GRAD_THRESHOLD = args.GT
+    # if args.GT != 'DEV':
+    #     GRAD_THRESHOLD = args.GT
 
     print("ST = ", SSIM_THRESHOLD)
     print("GT = ", GRAD_THRESHOLD)
-    print("mode  = ", args.mode)
+    # print("mode  = ", args.mode)
     print("========== SSIM graph Ready! ==========")
     g = graph()
 
@@ -118,12 +118,14 @@ if __name__=="__main__":
     line2, = ax2.plot([], [], lw=3)
 
     def s_animate(i):
+        if rospy.get_param('kill'):
+            kill_process()
         global args
         global ssim_score
         global sgraph_x
         global sgraph_y
         global sindex
-
+    
         score = ssim_score
         
         if next(sindex) >= x_max:

@@ -19,29 +19,29 @@
       order = 0
       parent = ""
       position = 167:127
-      size = 1355, 893
+      size = 2000, 1200
       title = Collabot
       type = Window
     [[[child1]]]
       order = 0
       parent = child0
       position = 666
-      ratio = 0.493333333333
+      ratio = 0.5
       type = HPaned
     [[[child2]]]
       order = 0
       parent = child1
       position = 443
-      ratio = 0.498873873874
+      ratio = 0.5
       type = VPaned
     [[[child5]]]
       order = 1
       parent = child1
       position = 443
-      ratio = 0.498873873874
+      ratio = 0.5
       type = VPaned
     [[[terminal3]]]
-      command = source /opt/ros/melodic/setup.bash;roscore;bash
+      command = source /opt/ros/melodic/setup.bash;source ~/catkin_ws1/devel/setup.bash;rosrun collabot_do run.py;bash
       order = 0
       parent = child2
       profile = collabot_set
@@ -57,7 +57,7 @@
       type = Terminal
       uuid = 5862c8a7-63d4-4cc9-915e-12196c1b9cca
     [[[terminal6]]]
-      command = source /opt/ros/melodic/setup.bash;source ~/catkin_ws1/devel/setup.bash;sleep 1s; rosrun collabot_do l_ssim.py 0;bash
+      command = source /opt/ros/melodic/setup.bash;source ~/catkin_ws1/devel/setup.bash;sleep 2s; roslaunch az_body_tracker run.launch;bash
       order = 0
       parent = child5
       profile = collabot_set
@@ -65,7 +65,7 @@
       type = Terminal
       uuid = ca47c9a4-3e5b-46bc-b54f-5f399e0e3b19
     [[[terminal7]]]
-      command = source /opt/ros/melodic/setup.bash;source ~/catkin_ws1/devel/setup.bash;sleep 1s; rosrun collabot_do ssim_graph.py;bash
+      command = source /opt/ros/melodic/setup.bash;source ~/catkin_ws1/devel/setup.bash;sleep 2s; roslaunch collabot_do ssim.launch;bash
       order = 1
       parent = child5
       profile = collabot_set

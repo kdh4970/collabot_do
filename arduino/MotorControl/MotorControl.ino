@@ -24,32 +24,6 @@ DynamixelWorkbench dxl_wb;
 
 ros::NodeHandle nh;
 BookcaseReader bookcaseReader(Serial2,nh);
-// std_msgs::String state;
-//make publisher
-// ros::Publisher bookcase_num_pub("bookcase_num",  &moter_num);
-// ros::Publisher count_pub("count",  &total_count);
-
-
-// 바꿔야함.
-/*
-int isclose {};
-
-void close_cb(const std_msgs::String& cmd_msg){
-  //isclose = cmd_msg.data.c_str();
-  if (state.data = "open"){
-      String my_data = cmd_msg.data;
-       //if (cmd_msg.data.c_str() == my_string){
-        if (my_data == "diff"){
-        isclose = 1;
-        //delay(100); //if you want to turn on led aduino do7 
-        digitalWrite(7,HIGH);
-        }
-  }
-}
-
-//make subscriber
-ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
-*/
 uint16_t model_number = 0;
 int32_t presentposition[13];
 int initial_pos[13] = {0,};
@@ -80,7 +54,6 @@ void CloseBookcase(int motor_num){
 // Reset all bookcase, and reader's count
 void Reset(){
   for(size_t i{1};i<10;i++) CloseBookcase(i);
-  bookcaseReader.reset();
 }
 
 // The function that run the motor of given action and target.
@@ -157,13 +130,8 @@ void loop() {
   
   while (nh.connected()) 
   {
-    if(nh.getParam("kill")){
-      nh.loginfo("Killing Process...");
-      nh.shutdown();
-      return;
-    }
     if(start_flag == false){
-      nh.loginfo("OpenCR Ready!");
+      nh.loginfo("========== OpenCR Ready! ==========");
       start_flag = true;
     }
     bookcaseReader.read();

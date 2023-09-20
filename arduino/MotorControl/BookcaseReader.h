@@ -10,10 +10,8 @@ public:
   ~BookcaseReader();
   void init(int baudrate);
   void read();
-  void reset();
 
 private:
-  int _count;
   HardwareSerial& _serial;
   String read_data;
   std_msgs::String pub_data;

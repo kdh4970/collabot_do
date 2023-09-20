@@ -7,7 +7,7 @@ import copy
 import rospy,rospkg
 import sys
 from std_msgs.msg import Float32,String,Int32
-
+import time
 SSIM_THRESHOLD = 0.65
 GRAD_THRESHOLD =15
 FPS = 30
@@ -17,7 +17,7 @@ ls -al /dev/video*
 '''
 
 def kill_process():
-    print('Killing process...')
+    print('Killing Process...')
     sys.exit(0)
 #ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
 
@@ -25,7 +25,7 @@ class SSIM:
     def __init__(self):
         self.data = None #전역변수로 선언을 해주고
         self.grad = 0
-        self.state = None
+        self.state = "close"
         self.bookcase = None
         self.move = "same"
         
@@ -37,6 +37,7 @@ class SSIM:
         self.subscriber2 = rospy.Subscriber(
             name="set_bookcase", data_class=String, callback=self.callbackFunction2)
         self.rate = rospy.Rate(30) # 0.5hz
+        self.sigopen_time = None
 
     def callbackFunction1(self,msg): #기본 argument는 구독한 메세지 객체 
         #callback : topic이 발행되는 이벤트가 발생하였을 때 event listener함수를 콜백함수로 요구
@@ -45,6 +46,7 @@ class SSIM:
 
     def callbackFunction2(self,msg):
         if msg.data[:4] == 'book':
+            time.sleep(5 if msg.data[4] in ["3","4","8"] else 1.5)
             if msg.data[6:] == 'open':
                 self.state = 'open'
             elif msg.data[6:] == 'close':
@@ -121,7 +123,7 @@ if __name__ == '__main__':
         bookcase_num = s.bookcase
         #bookcase_num = "book9" #임시 나중에 빼기
 
-        if s.bookcase == None or s.bookcase == 'reset':
+        if s.bookcase == None or s.bookcase == 'reset' or s.state == "close":
             continue
 
         if past_bookcase_num == "" or past_bookcase_num != bookcase_num:
