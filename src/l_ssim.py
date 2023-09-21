@@ -74,6 +74,7 @@ class SSIM:
     def move_publish(self):
         if self.state == "open":
             if self.grad > GRAD_THRESHOLD:
+                print("diff occured!")
                 self.move = "diff"
                 self.publisher3.publish(self.move)
                 #rospy.loginfo(self.data)
@@ -160,6 +161,10 @@ if __name__ == '__main__':
                 flag_diff = 1 
                 pass
             else:
+                print("this seq bookcase, state, timediff")
+                print(s.bookcase)
+                print(s.state)
+                print(curr_time - s.opentime)
                 s.diff_publish(curr_score,past_score)
                 s.move_publish()
 
