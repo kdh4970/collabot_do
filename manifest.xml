@@ -11,5 +11,8 @@
   <depend package="roscpp"/>
   <depend package="rospy"/>
   <depend package="std_msgs"/>
+  <depend package="message_generation"/>
+  <depend package="message_runtime">
+  <depend package="dynamic_reconfigure"/>
 
 </package>

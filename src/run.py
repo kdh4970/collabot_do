@@ -5,7 +5,11 @@ from azbt_msgs.msg import Elem, bt_data
 from collections import deque
 import threading
 import signal
-import os,sys, timeit
+import os,sys
+import actionlib
+from dynamic_reconfigure.server import Server
+from collabot_do.cfg import collabot_doConfig
+from collabot_do.srv import call_ssim,call_ssimResponse
 
 def signal_handler(sig, frame):
     print('Killing Process...')
@@ -31,12 +35,29 @@ class Sub():
         #     name='bookcase_state', data_class=String, callback=self.callbackFunction1)
         self.bodytracker_sub = rospy.Subscriber("bt_result", bt_data, self.bt_callback)
         self.bookcase_num_sub = rospy.Subscriber("bluetooth_input", String, self.bluetooth_callback)
-        self.change_sub = rospy.Subscriber("change", String, self.change_callback)
+        self.change_sub = rospy.Subscriber("close_sig", String, self.change_callback)
         self.scenario_sub = rospy.Subscriber("scenario", Int32, self.scenario_callback)
-        
         rospy.set_param('kill', False)
-        self.height_threshold = rospy.get_param('height_threshold', 150)
+        self.ac_threshold = rospy.get_param('ac_threshold', 150.)
         
+        srv = Server(collabot_doConfig, self.config_callback)
+
+    def config_callback(self, config, level):
+        rospy.set_param('ac_threshold', config['ac_threshold'])
+        self.ac_threshold = config['ac_threshold']
+        return config
+    
+    def ssim_client(bookcase_num):
+        rospy.wait_for_service('ssim_server')
+        try:
+            ssim_server = rospy.ServiceProxy('ssim_server', call_ssim)
+            result = ssim_server(bookcase_num)
+            if result == 0:
+                return
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
+
+
     def run(self):
         rospy.loginfo("Main Node Ready.")
         rospy.loginfo("Press Ctrl+C to exit.")
@@ -71,7 +92,7 @@ class Sub():
             if len(detected_user) == 1:
                 if length == 0:
                     ac_info = "None"
-                elif length >= self.height_threshold:
+                elif length >= self.ac_threshold:
                     ac_info = "adult"
                 else:
                     ac_info = "child"
@@ -133,7 +154,8 @@ class TaskExecutor:
                     if (ac_info == "adult" and count>=3) or (ac_info == "child" and taskque[0][4] in ["1","2","3"]):
                         self.subtask_turtlebot_move()
                     self.subtask_open()
-                    self.wait_close_flag()
+                    self.ssim_client(int(taskque[0][4]))
+                    # self.wait_close_flag()
                     self.subtask_close()
                     
                 elif taskque[0] == "reset":
