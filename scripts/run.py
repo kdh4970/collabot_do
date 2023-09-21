@@ -26,36 +26,24 @@ taskque = deque()
 change = False
 ac_info = None
 taskflag = False
+ac_threshold = None
+
+def config_callback(config, level):
+    global ac_threshold
+    print(f"threshold changed! from {ac_threshold} to {config['ac_threshold']}")
+    rospy.set_param('ac_threshold', config['ac_threshold'])
+    ac_threshold = config['ac_threshold']
+    return config
 
 class Sub():
     def __init__(self):
-        # self.publisher3 = rospy.Publisher('change', String, queue_size=10)
-        # self.subscriber1 = rospy.Subscriber(
-        #     name='bookcase_state', data_class=String, callback=self.callbackFunction1)
+        global ac_threshold
         self.bodytracker_sub = rospy.Subscriber("bt_result", bt_data, self.bt_callback)
         self.bookcase_num_sub = rospy.Subscriber("bluetooth_input", String, self.bluetooth_callback)
         self.change_sub = rospy.Subscriber("close_sig", String, self.change_callback)
         self.scenario_sub = rospy.Subscriber("scenario", Int32, self.scenario_callback)
         rospy.set_param('kill', False)
-        self.ac_threshold = rospy.get_param('ac_threshold', 150.)
-        
-        srv = Server(collabot_doConfig, self.config_callback)
-
-    def config_callback(self, config, level):
-        rospy.set_param('ac_threshold', config['ac_threshold'])
-        self.ac_threshold = config['ac_threshold']
-        return config
-    
-    def ssim_client(bookcase_num):
-        rospy.wait_for_service('ssim_server')
-        try:
-            ssim_server = rospy.ServiceProxy('ssim_server', call_ssim)
-            result = ssim_server(bookcase_num)
-            if result == 0:
-                return
-        except rospy.ServiceException as e:
-            print("Service call failed: %s"%e)
-
+        ac_threshold = rospy.get_param('ac_threshold', 150.)
 
     def run(self):
         rospy.loginfo("Main Node Ready.")
@@ -75,7 +63,7 @@ class Sub():
 
     def bt_callback(self, msg):
         # get body tracking data
-        global ac_info, taskflag
+        global ac_info, taskflag, ac_threshold
         if not taskflag:
             detected_user=[]
             for _ in range(len(msg.data)):
@@ -91,7 +79,7 @@ class Sub():
             if len(detected_user) == 1:
                 if length == 0:
                     ac_info = "None"
-                elif length >= self.ac_threshold:
+                elif length >= ac_threshold:
                     ac_info = "adult"
                 else:
                     ac_info = "child"
@@ -109,6 +97,7 @@ class TaskExecutor:
     def __init__(self):
         self.set_bookcase_pub = rospy.Publisher("set_bookcase", String, queue_size=10)
         self.cmd_turtlebot_pub = rospy.Publisher("cmd_turtlebot", String, queue_size=10)
+        srv = Server(collabot_doConfig, config_callback)
 
     def subtask_open(self):
         global taskque
@@ -137,6 +126,20 @@ class TaskExecutor:
                 break
             else:
                 pass
+    def wait_motor_open(self,open_time):
+        while True:
+            curr_time = rospy.Time.now().secs
+            if (curr_time-open_time) > 4: break
+
+    def subtask_ssim(self,bookcase_num):
+        rospy.wait_for_service('ssim_server')
+        try:
+            ssim_server = rospy.ServiceProxy('ssim_server', call_ssim)
+            result = ssim_server(bookcase_num)
+            if result == 0:
+                return
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
 
     def run(self):
         global taskque, change, ac_info, count, taskflag
@@ -153,8 +156,8 @@ class TaskExecutor:
                     if (ac_info == "adult" and count>=3) or (ac_info == "child" and taskque[0][4] in ["1","2","3"]):
                         self.subtask_turtlebot_move()
                     self.subtask_open()
-                    self.ssim_client(int(taskque[0][4]))
-                    # self.wait_close_flag()
+                    self.wait_motor_open(rospy.Time.now().secs)
+                    self.subtask_ssim(int(taskque[0][4]))
                     self.subtask_close()
                     
                 elif taskque[0] == "reset":

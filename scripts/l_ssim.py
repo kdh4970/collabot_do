@@ -8,7 +8,7 @@ import sys
 from std_msgs.msg import Float32,String,Int32
 from collabot_do.srv import call_ssim,call_ssimResponse
 SSIM_THRESHOLD = 0.65
-GRAD_THRESHOLD =15
+GRAD_THRESHOLD = 10#15
 FPS = 30
 ''' if you want to check port num
 [bash]
@@ -34,7 +34,6 @@ class SSIM:
         
         self.cap = capture
         self.ROI = ROI
-        self.flag_diff = 0
         self.curr_cap =None
         self.past_cap = None
         self.past_bookcase_num = ""
@@ -42,26 +41,17 @@ class SSIM:
         print("========== SSIM Service Ready! ==========")
 
     def ssim_publish(self):
-        if self.state == "open":
-            self.publisher1.publish(self.data)
-            #rospy.loginfo(self.data)
-        else:
-            self.publisher1.publish(0)
-        self.rate.sleep() #100hz가 될때 까지 쉬기
+        self.publisher1.publish(self.data)
     
     def diff_publish(self,current_score,past_score):
-        # FPS 30 : 1/30000s -> 1frame
-        sec = 1/30000
-        if self.state == "open":
-            self.grad = (abs((current_score-past_score)/sec)/1000)**2
-            print(f"grad : {self.grad}")
-            self.publisher2.publish(self.grad)
-        else:
-            self.publisher2.publish(0)
-        self.rate.sleep() #100hz가 될때 까지 쉬기
+        self.grad = abs(current_score-past_score)*100
+        print(f"grad : {self.grad}")
+        self.publisher2.publish(self.grad)
 
     def handle_ssim(self,req):
-        bookcase_num = req.A
+        bookcase_num = "book"+str(req.A)
+        past_score = None
+        flag_diff = 0
         while self.cap.isOpened() and self.move == "same":
             
             _,src = self.cap.read()
@@ -82,8 +72,9 @@ class SSIM:
                 diff = (diff * 255).astype("uint8")
                 
                 curr_score = score
-                if self.flag_diff ==0:
-                    self.flag_diff = 1 
+                if flag_diff ==0:
+                    flag_diff = 1 
+                    past_score = curr_score
                     pass
                 else:
                     print(f"curr_score : {curr_score}, past_score :{past_score}")
@@ -94,7 +85,7 @@ class SSIM:
                     else:
                         pass
 
-                past_score = curr_score
+                
                 self.data = score
                 self.ssim_publish()
 
