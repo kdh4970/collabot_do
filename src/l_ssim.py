@@ -47,7 +47,7 @@ class SSIM:
         if msg.data[:4] == 'book':
             if msg.data[6:] == 'open':
                 self.state = 'open'
-                self.opentime = rospy.Time.now()
+                self.opentime = rospy.Time.now().secs
             elif msg.data[6:] == 'close':
                 self.state = 'close'
         self.bookcase = msg.data[:5]
@@ -66,6 +66,7 @@ class SSIM:
         sec = 1/30000
         if self.state == "open":
             self.grad = (abs((current_score-past_score)/sec)/1000)**2
+            print(f"grad : {self.grad}")
             self.publisher2.publish(self.grad)
         else:
             self.publisher2.publish(0)
@@ -77,6 +78,7 @@ class SSIM:
                 print("diff occured!")
                 self.move = "diff"
                 self.publisher3.publish(self.move)
+                self.state = "close"
                 #rospy.loginfo(self.data)
             else:
                 self.move ="same"
@@ -106,7 +108,6 @@ if __name__ == '__main__':
     #=======================================================================
 
 
-    flag = 0
     flag_diff = 0
     curr_cap =None
     past_cap = None
@@ -122,17 +123,17 @@ if __name__ == '__main__':
 
         bookcase_num = s.bookcase
         #bookcase_num = "book9" #임시 나중에 빼기
-        curr_time = rospy.Time.now()
+        curr_time = rospy.Time.now().secs
+        condition = s.bookcase == None or s.bookcase == 'reset' or s.state == "close" or curr_time - s.opentime < 5
 
-        if s.bookcase == None or s.bookcase == 'reset' or s.state == "close" or curr_time - s.opentime < rospy.Duration(5):
+        if condition:
             continue
+        else: flag_diff = 0
 
         if past_bookcase_num == "" or past_bookcase_num != bookcase_num:
             print("ROI weigh : %d , height : %d " %( ROI[bookcase_num]['x2']-ROI[bookcase_num]['x1'] , ROI[bookcase_num]['y2']-ROI[bookcase_num]['y1']))
             past_bookcase_num = bookcase_num
 
-        if flag == 0: # pass to one frame at starting point (need of past)
-            flag = 1
 
         else:
             
@@ -161,10 +162,7 @@ if __name__ == '__main__':
                 flag_diff = 1 
                 pass
             else:
-                print("this seq bookcase, state, timediff")
-                print(s.bookcase)
-                print(s.state)
-                print(curr_time - s.opentime)
+                print(f"curr_Score : {curr_score}, past_score :{past_score}")
                 s.diff_publish(curr_score,past_score)
                 s.move_publish()
 
