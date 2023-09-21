@@ -6,7 +6,6 @@ from collections import deque
 import threading
 import signal
 import os,sys
-import actionlib
 from dynamic_reconfigure.server import Server
 from collabot_do.cfg import collabot_doConfig
 from collabot_do.srv import call_ssim,call_ssimResponse
