@@ -58,6 +58,7 @@ class Sub():
         input_cmd = msg.data
         taskque.append(input_cmd)
         rospy.loginfo("Received bluetooth input: {}".format(input_cmd))
+        print(f"taskque : {taskque}")
 
     def bt_callback(self, msg):
         # get body tracking data
