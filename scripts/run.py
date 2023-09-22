@@ -87,8 +87,10 @@ class Sub():
 
 class TaskExecutor:
     def __init__(self):
+        # set_bookcase contained : "bookN open, bookN close, reset"
         self.set_bookcase_pub = rospy.Publisher("set_bookcase", String, queue_size=10)
-        self.cmd_turtlebot_pub = rospy.Publisher("cmd_turtlebot", String, queue_size=10)
+        # move_turtlebot contained : 0,1,2.3 (1,2,3 means bookcase number, 0 means reset)
+        self.cmd_turtlebot_pub = rospy.Publisher("move_turtlebot", String, queue_size=10)
         srv = Server(collabot_doConfig, config_callback)
 
     def subtask_open(self):
@@ -105,9 +107,13 @@ class TaskExecutor:
         self.set_bookcase_pub.publish("reset")
         rospy.loginfo("reset")
 
-    def subtask_turtlebot_move(self):
-        self.cmd_turtlebot_pub.publish("go")
+    def subtask_turtlebot_move(self,bookcasenum):
+        self.cmd_turtlebot_pub.publish(bookcasenum)
         rospy.loginfo("move turtlebot")
+
+    def subtask_turtlebot_reset(self):
+        self.cmd_turtlebot_pub.publish(0)
+        rospy.loginfo("reset turtlebot")
 
     def wait_motor_open(self,open_time):
         while True:
@@ -127,6 +133,7 @@ class TaskExecutor:
     def run(self):
         global taskque, ac_info, count, taskflag
         while True:
+            turtlebot_condition = (ac_info == "adult" and count>=3) or (ac_info == "child" and taskque[0][4] in ["1","2","3"])
             if len(taskque) != 0: # running task
                 print("+-------------- Task Info --------------+")
                 print(f"Task Queue   : {taskque}")
@@ -136,8 +143,8 @@ class TaskExecutor:
                 if taskque[0][:4] == "book":
                     count += 1
                     print(f"Book Count   : {count}")
-                    if (ac_info == "adult" and count>=3) or (ac_info == "child" and taskque[0][4] in ["1","2","3"]):
-                        self.subtask_turtlebot_move()
+                    if turtlebot_condition:
+                        self.subtask_turtlebot_move(int(taskque[0][4]))
                     self.subtask_open()
                     self.wait_motor_open(rospy.Time.now().secs)
                     self.subtask_ssim(int(taskque[0][4]))
@@ -145,7 +152,10 @@ class TaskExecutor:
                     
                 elif taskque[0] == "reset":
                     count = 0
+                    
                     print(f"Book Count   : {count}")
+                    if turtlebot_condition:
+                        self.subtask_turtlebot_reset()
                     self.subtask_reset()
                 else:pass
                 
