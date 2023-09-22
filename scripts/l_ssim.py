@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from skimage.metrics import structural_similarity as ssim
-import numpy as np
 import cv2
 import json
 import rospy,rospkg
@@ -27,9 +26,6 @@ class SSIM:
         
         self.publisher1 = rospy.Publisher('SSIM', Float32, queue_size=10)
         self.publisher2 = rospy.Publisher('GRAD', Float32, queue_size=10)
-        # self.publisher3 = rospy.Publisher('change', String, queue_size=10)
-        # self.subscriber2 = rospy.Subscriber(
-        #     name="set_bookcase", data_class=String, callback=self.callbackFunction2)
         self.rate = rospy.Rate(30) # 0.5hz
         
         self.cap = capture
@@ -49,6 +45,7 @@ class SSIM:
         self.publisher2.publish(self.grad)
 
     def handle_ssim(self,req):
+        print("========== SSIM Service Called! ==========")
         bookcase_num = "book"+str(req.A)
         past_score = None
         flag_diff = 0
@@ -81,6 +78,7 @@ class SSIM:
                     self.diff_publish(curr_score,past_score)
                     if self.grad > GRAD_THRESHOLD:
                         print("diff occured!")
+                        print("========== SSIM Service Finished! ==========")
                         return call_ssimResponse(0)
                     else:
                         pass
