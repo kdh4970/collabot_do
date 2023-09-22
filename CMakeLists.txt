@@ -159,7 +159,6 @@ include_directories(
 catkin_install_python(PROGRAMS
   scripts/run.py
   scripts/l_ssim.py
-  scripts/ssim.py
   utils/ssim_graph.py
   utils/get_ROI.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
