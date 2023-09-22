@@ -3,11 +3,11 @@ from skimage.metrics import structural_similarity as ssim
 import cv2
 import json
 import rospy,rospkg
-import sys
+import sys,time
 from std_msgs.msg import Float32,String,Int32
 from collabot_do.srv import call_ssim,call_ssimResponse
 SSIM_THRESHOLD = 0.65
-GRAD_THRESHOLD = 10#15
+GRAD_THRESHOLD = 15#15
 FPS = 30
 ''' if you want to check port num
 [bash]
@@ -16,7 +16,7 @@ ls -al /dev/video*
 
 
 class SSIM:
-    def __init__(self,capture,ROI):
+    def __init__(self,camnum,ROI):
         self.data = None #전역변수로 선언을 해주고
         self.grad = 0
         self.state = "close"
@@ -26,7 +26,7 @@ class SSIM:
         self.publisher2 = rospy.Publisher('GRAD', Float32, queue_size=10)
         self.rate = rospy.Rate(30) # 0.5hz
         
-        self.cap = capture
+        self.video = camnum
         self.ROI = ROI
         self.curr_cap =None
         self.past_cap = None
@@ -47,9 +47,11 @@ class SSIM:
         bookcase_num = "book"+str(req.A)
         past_score = None
         flag_diff = 0
-        while self.cap.isOpened() and self.move == "same":
+        cap = cv2.VideoCapture(self.video)
+        print("camera width : %d, camera height : %d" %(cap.get(cv2.CAP_PROP_FRAME_WIDTH) , cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        while cap.isOpened() and self.move == "same":
             
-            _,src = self.cap.read()
+            _,src = cap.read()
             self.curr_cap = src.copy()
 
             if self.past_bookcase_num == "" or self.past_bookcase_num != bookcase_num:
@@ -67,16 +69,22 @@ class SSIM:
                 diff = (diff * 255).astype("uint8")
                 
                 curr_score = score
-                if flag_diff ==0:
-                    flag_diff = 1 
-                    past_score = curr_score
-                    pass
+                if flag_diff < 5: # drop first 5 frames
+                    flag_diff += 1 
+                    if flag_diff == 5:
+                        past_score = curr_score
                 else:
                     print(f"curr_score : {curr_score}, past_score :{past_score}")
                     self.diff_publish(curr_score,past_score)
                     if self.grad > GRAD_THRESHOLD:
                         print("diff occured!")
+                        cap.release()
+                        self.past_bookcase_num = None
+                        self.curr_cap = None
+                        self.past_cap = None
+                        cv2.destroyAllWindows()
                         print("========== SSIM Service Finished! ==========")
+                        if req.A in [3,4,8]: time.sleep(1)
                         return call_ssimResponse(0)
                     else:
                         pass
@@ -89,8 +97,9 @@ class SSIM:
                 cv2.imshow("VideoFrame", src)
                 cv2.imshow("contour",curr_crop)
             self.past_cap = src
-            if cv2.waitKey(int(1000/FPS)) & 0xFF == ord('q'): #FPS 30 =>  Time  = 1000 / FPS
-                break
+            cv2.waitKey(int(1000/FPS))
+            # if cv2.waitKey(int(1000/FPS)) & 0xFF == ord('q'): #FPS 30 =>  Time  = 1000 / FPS
+            #     break
         return call_ssimResponse(-1)
 
 if __name__ == '__main__':
@@ -105,12 +114,11 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         VideoNum = int(sys.argv[1])
     
-    cap = cv2.VideoCapture(VideoNum)
-    print("camera width : %d, camera height : %d" %(cap.get(cv2.CAP_PROP_FRAME_WIDTH) , cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    
     with open(json_path, "r") as json_file:
         ROI = json.load(json_file)
     
     print("========== SSIM Camera Ready! ==========")
-    s= SSIM(cap,ROI)
+    s= SSIM(VideoNum,ROI)
     rospy.spin()
     cv2.destroyAllWindows()

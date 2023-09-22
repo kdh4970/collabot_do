@@ -118,23 +118,24 @@ class TaskExecutor:
     def wait_motor_open(self,open_time):
         while True:
             curr_time = rospy.Time.now().secs
-            if (curr_time-open_time) > 4: break
+            if (curr_time-open_time) > 3: break
 
     def subtask_ssim(self,bookcase_num):
         rospy.wait_for_service('ssim_server')
+        print("Calling SSIM server...")
         try:
             ssim_server = rospy.ServiceProxy('ssim_server', call_ssim)
+            print("SSIM attached!")
             result = ssim_server(bookcase_num)
-            if result == 0:
-                return
+            print(f"SSIM {result}")
         except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
 
     def run(self):
         global taskque, ac_info, count, taskflag
         while True:
-            turtlebot_condition = (ac_info == "adult" and count>=3) or (ac_info == "child" and taskque[0][4] in ["1","2","3"])
             if len(taskque) != 0: # running task
+                turtlebot_condition = (ac_info == "adult" and count>=3) or (ac_info == "child" and taskque[0][4] in ["1","2","3"])
                 print("+-------------- Task Info --------------+")
                 print(f"Task Queue   : {taskque}")
                 print(f"Current Task : {taskque[0]}")
