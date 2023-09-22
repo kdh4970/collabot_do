@@ -23,7 +23,6 @@ signal.signal(signal.SIGINT, signal_handler)
 scenario = None
 count = 0
 taskque = deque()
-change = False
 ac_info = None
 taskflag = False
 ac_threshold = None
@@ -40,7 +39,6 @@ class Sub():
         global ac_threshold
         self.bodytracker_sub = rospy.Subscriber("bt_result", bt_data, self.bt_callback)
         self.bookcase_num_sub = rospy.Subscriber("bluetooth_input", String, self.bluetooth_callback)
-        self.change_sub = rospy.Subscriber("close_sig", String, self.change_callback)
         self.scenario_sub = rospy.Subscriber("scenario", Int32, self.scenario_callback)
         rospy.set_param('kill', False)
         ac_threshold = rospy.get_param('ac_threshold', 150.)
@@ -85,12 +83,6 @@ class Sub():
                     ac_info = "child"
                 pass
 
-    def change_callback(self, msg):
-        global change
-        if msg.data == "diff":
-            change = True
-        else:
-            pass
 
 
 class TaskExecutor:
@@ -117,15 +109,6 @@ class TaskExecutor:
         self.cmd_turtlebot_pub.publish("go")
         rospy.loginfo("move turtlebot")
 
-    def wait_close_flag(self):
-        global change
-        while True:
-            if change:
-                rospy.loginfo("close flag")
-                change = False
-                break
-            else:
-                pass
     def wait_motor_open(self,open_time):
         while True:
             curr_time = rospy.Time.now().secs
@@ -142,7 +125,7 @@ class TaskExecutor:
             print("Service call failed: %s"%e)
 
     def run(self):
-        global taskque, change, ac_info, count, taskflag
+        global taskque, ac_info, count, taskflag
         while True:
             if len(taskque) != 0: # running task
                 print("+-------------- Task Info --------------+")
