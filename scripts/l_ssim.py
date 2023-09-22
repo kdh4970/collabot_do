@@ -14,8 +14,6 @@ FPS = 30
 ls -al /dev/video*
 '''
 
-#ros::Subscriber<std_msgs::String> close_flag("change", close_cb); // same/diff
-
 
 class SSIM:
     def __init__(self,capture,ROI):
