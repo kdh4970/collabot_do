@@ -31,7 +31,6 @@ def config_callback(config, level):
 class MainNode():
     def __init__(self):
         global ac_threshold
-        self.scenario = None
         self.count = 0
         self.taskque = deque()
         self.ac_info = None
@@ -39,7 +38,6 @@ class MainNode():
         
         self.bodytracker_sub = rospy.Subscriber("bt_result", bt_data, self.bt_callback)
         self.bookcase_num_sub = rospy.Subscriber("bluetooth_input", String, self.bluetooth_callback)
-        self.scenario_sub = rospy.Subscriber("scenario", Int32, self.scenario_callback)
         rospy.set_param('kill', False)
         ac_threshold = rospy.get_param('ac_threshold', 150.)
 
@@ -54,13 +52,11 @@ class MainNode():
         rospy.loginfo("Waiting Bluetooth Input...")
         rospy.spin()
 
-    def scenario_callback(self, msg):
-        self.scenario = msg.data
 
     def bluetooth_callback(self, msg):
         input_cmd = msg.data
         self.taskque.append(input_cmd)
-        rospy.loginfo("Received bluetooth input: {}".format(input_cmd))
+        print("Received bluetooth input: {}".format(input_cmd))
         print(f"Task Queue   : {self.taskque}")
 
     def bt_callback(self, msg):
@@ -89,23 +85,23 @@ class MainNode():
     
     def subtask_open(self):
         self.set_bookcase_pub.publish(self.taskque[0]+" open")
-        rospy.loginfo("open")
+        print("execute : open")
 
     def subtask_close(self):
         self.set_bookcase_pub.publish(self.taskque[0]+" close")
-        rospy.loginfo("close")
+        print("execute : close")
 
     def subtask_reset(self):
         self.set_bookcase_pub.publish("reset")
-        rospy.loginfo("reset")
+        print("execute : reset")
 
     def subtask_turtlebot_move(self,bookcasenum):
         self.cmd_turtlebot_pub.publish(bookcasenum)
-        rospy.loginfo("move turtlebot")
+        print("execute : move turtlebot")
 
     def subtask_turtlebot_reset(self):
         self.cmd_turtlebot_pub.publish(0)
-        rospy.loginfo("reset turtlebot")
+        print("execute : reset turtlebot")
 
     def wait_motor_open(self,open_time):
         while True:
@@ -125,7 +121,7 @@ class MainNode():
 
     def run(self):
         while True:
-            if len(self.taskque) != 0: # running task
+            if (len(self.taskque) is not 0) and (self.ac_info is not "None"): # running task
                 turtlebot_condition = (self.ac_info == "adult" and self.count>=3) or (self.ac_info == "child" and self.taskque[0][4] in ["1","2","3"])
                 print("+-------------- Task Info --------------+")
                 print(f"Task Queue   : {self.taskque}")
