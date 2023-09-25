@@ -82,9 +82,9 @@ class SSIM:
                         self.past_bookcase_num = None
                         self.curr_cap = None
                         self.past_cap = None
+                        if req.A in [3,4,8]: time.sleep(1)
                         cv2.destroyAllWindows()
                         print("========== SSIM Service Finished! ==========")
-                        if req.A in [3,4,8]: time.sleep(1)
                         return call_ssimResponse(0)
                     else:
                         pass

@@ -19,12 +19,6 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
-
-scenario = None
-count = 0
-taskque = deque()
-ac_info = None
-taskflag = False
 ac_threshold = None
 
 def config_callback(config, level):
@@ -34,36 +28,45 @@ def config_callback(config, level):
     ac_threshold = config['ac_threshold']
     return config
 
-class Sub():
+class MainNode():
     def __init__(self):
         global ac_threshold
+        self.scenario = None
+        self.count = 0
+        self.taskque = deque()
+        self.ac_info = None
+        self.taskflag = False
+        
         self.bodytracker_sub = rospy.Subscriber("bt_result", bt_data, self.bt_callback)
         self.bookcase_num_sub = rospy.Subscriber("bluetooth_input", String, self.bluetooth_callback)
         self.scenario_sub = rospy.Subscriber("scenario", Int32, self.scenario_callback)
         rospy.set_param('kill', False)
         ac_threshold = rospy.get_param('ac_threshold', 150.)
 
-    def run(self):
+        self.set_bookcase_pub = rospy.Publisher("set_bookcase", String, queue_size=10)
+        # move_turtlebot contained : 0,1,2.3 (1,2,3 means bookcase number, 0 means reset)
+        self.cmd_turtlebot_pub = rospy.Publisher("move_turtlebot", String, queue_size=10)
+        srv = Server(collabot_doConfig, config_callback)
+
+    def node_spin(self):
         rospy.loginfo("Main Node Ready.")
         rospy.loginfo("Press Ctrl+C to exit.")
         rospy.loginfo("Waiting Bluetooth Input...")
         rospy.spin()
 
     def scenario_callback(self, msg):
-        global scenario
-        scenario = msg.data
+        self.scenario = msg.data
 
     def bluetooth_callback(self, msg):
-        global taskque, taskflag
         input_cmd = msg.data
-        taskque.append(input_cmd)
+        self.taskque.append(input_cmd)
         rospy.loginfo("Received bluetooth input: {}".format(input_cmd))
-        print(f"taskque : {taskque}")
+        print(f"Task Queue   : {self.taskque}")
 
     def bt_callback(self, msg):
+        global ac_threshold
         # get body tracking data
-        global ac_info, taskflag, ac_threshold
-        if not taskflag:
+        if not self.taskflag:
             detected_user=[]
             for _ in range(len(msg.data)):
                 elem = Elem()
@@ -77,31 +80,19 @@ class Sub():
             # if only one person is detected
             if len(detected_user) == 1:
                 if length == 0:
-                    ac_info = "None"
+                    self.ac_info = "None"
                 elif length >= ac_threshold:
-                    ac_info = "adult"
+                    self.ac_info = "adult"
                 else:
-                    ac_info = "child"
+                    self.ac_info = "child"
                 pass
-
-
-
-class TaskExecutor:
-    def __init__(self):
-        # set_bookcase contained : "bookN open, bookN close, reset"
-        self.set_bookcase_pub = rospy.Publisher("set_bookcase", String, queue_size=10)
-        # move_turtlebot contained : 0,1,2.3 (1,2,3 means bookcase number, 0 means reset)
-        self.cmd_turtlebot_pub = rospy.Publisher("move_turtlebot", String, queue_size=10)
-        srv = Server(collabot_doConfig, config_callback)
-
+    
     def subtask_open(self):
-        global taskque
-        self.set_bookcase_pub.publish(taskque[0]+" open")
+        self.set_bookcase_pub.publish(self.taskque[0]+" open")
         rospy.loginfo("open")
 
     def subtask_close(self):
-        global taskque
-        self.set_bookcase_pub.publish(taskque[0]+" close")
+        self.set_bookcase_pub.publish(self.taskque[0]+" close")
         rospy.loginfo("close")
 
     def subtask_reset(self):
@@ -133,41 +124,39 @@ class TaskExecutor:
             print("Service call failed: %s"%e)
 
     def run(self):
-        global taskque, ac_info, count, taskflag
         while True:
-            if len(taskque) != 0: # running task
-                turtlebot_condition = (ac_info == "adult" and count>=3) or (ac_info == "child" and taskque[0][4] in ["1","2","3"])
+            if len(self.taskque) != 0: # running task
+                turtlebot_condition = (self.ac_info == "adult" and self.count>=3) or (self.ac_info == "child" and self.taskque[0][4] in ["1","2","3"])
                 print("+-------------- Task Info --------------+")
-                print(f"Task Queue   : {taskque}")
-                print(f"Current Task : {taskque[0]}")
-                print(f"User         : {ac_info}")
-                taskflag = True
-                if taskque[0][:4] == "book":
-                    count += 1
-                    print(f"Book Count   : {count}")
+                print(f"Task Queue   : {self.taskque}")
+                print(f"Current Task : {self.taskque[0]}")
+                print(f"User         : {self.ac_info}")
+                self.taskflag = True
+                if self.taskque[0][:4] == "book":
+                    self.count += 1
+                    print(f"Book count   : {self.count}")
                     if turtlebot_condition:
-                        self.subtask_turtlebot_move(int(taskque[0][4]))
+                        self.subtask_turtlebot_move(int(self.taskque[0][4]))
                     self.subtask_open()
                     self.wait_motor_open(rospy.Time.now().secs)
-                    self.subtask_ssim(int(taskque[0][4]))
+                    self.subtask_ssim(int(self.taskque[0][4]))
                     self.subtask_close()
                     
-                elif taskque[0] == "reset":
-                    count = 0
+                elif self.taskque[0] == "reset":
+                    self.count = 0
                     
-                    print(f"Book Count   : {count}")
+                    print(f"Book count   : {self.count}")
                     if turtlebot_condition:
                         self.subtask_turtlebot_reset()
                     self.subtask_reset()
                 else:pass
                 
-                taskque.popleft()
-                ac_info = None
+                self.taskque.popleft()
+                self.ac_info = None
             else: # waiting task
-                taskflag = False
+                self.taskflag = False
 
-            
-            
+
 
 
 def main():
@@ -181,12 +170,10 @@ def main():
     print("##       ####    ####     ##  ##  ##    ##  #####     ####       ##        ##")
     print("##                                                                         ##")
     print("############################################################################# \n") 
-    rospy.loginfo("Starting Subscriber thread...")
-    sub = Sub()
-    rospy.loginfo("Starting TaskExecutor thread...")
-    Te = TaskExecutor()
-    t1 = threading.Thread(target=sub.run)
-    t2 = threading.Thread(target=Te.run)
+    node = MainNode()
+    rospy.loginfo("Starting Main Node thread...")
+    t1 = threading.Thread(target=node.node_spin)
+    t2 = threading.Thread(target=node.run)
     t1.daemon=True
     t2.daemon=True
     t1.start()
