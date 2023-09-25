@@ -172,14 +172,18 @@ def main():
     print("############################################################################# \n") 
     node = MainNode()
     rospy.loginfo("Starting Main Node thread...")
-    t1 = threading.Thread(target=node.node_spin)
+    # t1 = threading.Thread(target=node.node_spin)
     t2 = threading.Thread(target=node.run)
-    t1.daemon=True
+    # t1.daemon=True
     t2.daemon=True
-    t1.start()
+    # t1.start()
     t2.start()
-    t1.join()
-    t2.join()
+    rospy.loginfo("Main Node Ready.")
+    rospy.loginfo("Press Ctrl+C to exit.")
+    rospy.loginfo("Waiting Bluetooth Input...")
+    rospy.spin()
+    # t1.join()
+    # t2.join()
 
 
 
