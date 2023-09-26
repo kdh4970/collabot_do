@@ -5,7 +5,7 @@ from azbt_msgs.msg import Elem, bt_data
 from collections import deque
 import threading
 import signal
-import os,sys,time
+import os,sys
 from dynamic_reconfigure.server import Server
 from collabot_do.cfg import collabot_doConfig
 from collabot_do.srv import call_ssim,call_ssimResponse
