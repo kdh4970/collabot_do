@@ -170,7 +170,7 @@ class MainNode():
                 else:pass
                 
                 self.taskque.popleft()
-                self.ac_info = None
+                # self.ac_info = None
                 print("+-------------------------------------------------+\n\n")
             else: # waiting task
                 self.taskflag = False
