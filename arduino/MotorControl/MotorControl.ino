@@ -77,6 +77,10 @@ void run(const String action,const String target){
   else if(action == "reset"){
     Reset();
   }
+  if(target == "led"){
+    if(action == "on") digitalWrite(7,HIGH);
+    else if(action == "off") digitalWrite(7,LOW);
+  }
 }
 
 

@@ -5,7 +5,7 @@ from azbt_msgs.msg import Elem, bt_data
 from collections import deque
 import threading
 import signal
-import os,sys
+import os,sys,time
 from dynamic_reconfigure.server import Server
 from collabot_do.cfg import collabot_doConfig
 from collabot_do.srv import call_ssim,call_ssimResponse
@@ -57,7 +57,7 @@ class MainNode():
         input_cmd = msg.data
         self.taskque.append(input_cmd)
         print("Received bluetooth input: {}".format(input_cmd))
-        print(f"Task Queue   : {self.taskque}")
+        print(f"Task added   : {input_cmd}")
 
     def bt_callback(self, msg):
         global ac_threshold
@@ -85,45 +85,64 @@ class MainNode():
     
     def subtask_open(self):
         self.set_bookcase_pub.publish(self.taskque[0]+" open")
-        print("execute : open")
+        print(f"execute : Open bookcase {self.taskque[0][4]}")
 
     def subtask_close(self):
         self.set_bookcase_pub.publish(self.taskque[0]+" close")
-        print("execute : close")
+        print(f"execute : Close bookcase {self.taskque[0][4]}")
 
     def subtask_reset(self):
         self.set_bookcase_pub.publish("reset")
-        print("execute : reset")
+        print("execute : Reset")
 
     def subtask_turtlebot_move(self,bookcasenum):
         self.cmd_turtlebot_pub.publish(bookcasenum)
-        print("execute : move turtlebot")
+        print("execute : Move turtlebot")
 
     def subtask_turtlebot_reset(self):
         self.cmd_turtlebot_pub.publish(0)
-        print("execute : reset turtlebot")
+        print("execute : Reset turtlebot")
 
     def wait_motor_open(self,open_time):
+        print("execute : Waiting motor open...")
         while True:
             curr_time = rospy.Time.now().secs
             if (curr_time-open_time) > 3: break
 
     def subtask_ssim(self,bookcase_num):
         rospy.wait_for_service('ssim_server')
-        print("Calling SSIM server...")
+        print("execute : Calling SSIM server...")
         try:
             ssim_server = rospy.ServiceProxy('ssim_server', call_ssim)
-            print("SSIM attached!")
+            print("execute : SSIM attached!")
             result = ssim_server(bookcase_num)
-            print(f"SSIM {result}")
+            print(f"execute : SSIM respond {result}")
         except rospy.ServiceException as e:
-            print("Service call failed: %s"%e)
+            print("error : Service call failed: %s"%e)
+        
+    # ssim 끝나면 led키고, 몇초 기다린다음 닫기  #348 5초 나머지 1.5초
+    def ssim_light(self):
+        on_time = rospy.Time.now().secs
+        self.set_bookcase_pub.publish("led on")
+        print("execute : LED on")
+        if self.taskque[0][4] in ["3","4","8"]:
+            while True:
+                curr_time = rospy.Time.now().secs
+                if (curr_time-on_time) > 4: break
+        else:
+            while True:
+                curr_time = rospy.Time.now().secs
+                if (curr_time-on_time) > 2: break
+        self.set_bookcase_pub.publish("led off")
+        print("execute : LED off")
+
+        
 
     def run(self):
         while True:
             if (len(self.taskque) is not 0) and (self.ac_info is not "None"): # running task
                 turtlebot_condition = (self.ac_info == "adult" and self.count>=3) or (self.ac_info == "child" and self.taskque[0][4] in ["1","2","3"])
-                print("+-------------- Task Info --------------+")
+                print("+------------------- Task Info -------------------+")
                 print(f"Task Queue   : {self.taskque}")
                 print(f"Current Task : {self.taskque[0]}")
                 print(f"User         : {self.ac_info}")
@@ -131,17 +150,20 @@ class MainNode():
                 if self.taskque[0][:4] == "book":
                     self.count += 1
                     print(f"Book count   : {self.count}")
+                    print("+------------------- Exec Info -------------------+")
                     if turtlebot_condition:
                         self.subtask_turtlebot_move(int(self.taskque[0][4]))
                     self.subtask_open()
                     self.wait_motor_open(rospy.Time.now().secs)
                     self.subtask_ssim(int(self.taskque[0][4]))
+                    self.ssim_light()
                     self.subtask_close()
                     
                 elif self.taskque[0] == "reset":
                     self.count = 0
                     
                     print(f"Book count   : {self.count}")
+                    print("+------------------- Exec Info -------------------+")
                     if turtlebot_condition:
                         self.subtask_turtlebot_reset()
                     self.subtask_reset()
@@ -149,6 +171,7 @@ class MainNode():
                 
                 self.taskque.popleft()
                 self.ac_info = None
+                print("+-------------------------------------------------+\n\n")
             else: # waiting task
                 self.taskflag = False
 
