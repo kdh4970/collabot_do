@@ -1,3 +1,8 @@
+실행 : roscore만 별도 실행하고 터미널에 run 입력 후 엔터.
+종료 : 첫 번째(우상단) 터미널에서 Ctrl + C
+
+ssim_graph 및 바디트래커 rviz는 시각화가 불필요 한 경우 수정필요.
+
 ssim respond 받고 LED ON, 대기 후 close 및 LED OFF
 pointcloud & map align까지 되는거 확인.
 어른/아이 인식 시점:
