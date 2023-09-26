@@ -14,7 +14,7 @@ FPS = 30
 ls -al /dev/video*
 '''
 
-
+#
 class SSIM:
     def __init__(self,camnum,ROI):
         self.data = None #전역변수로 선언을 해주고

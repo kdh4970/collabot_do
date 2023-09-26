@@ -84,7 +84,7 @@ void run(const String action,const String target){
 }
 
 
-
+//
 // The callback function of the topic set_bookcasae. seperate the target and action.
 void readcmdCallback(const std_msgs::String &msg){
 	String cmd = "";
