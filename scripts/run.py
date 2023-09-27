@@ -52,7 +52,6 @@ class MainNode():
         rospy.loginfo("Waiting Bluetooth Input...")
         rospy.spin()
 
-
     def bluetooth_callback(self, msg):
         input_cmd = msg.data
         print("\n>>> Received bluetooth input : {}".format(input_cmd))
