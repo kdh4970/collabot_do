@@ -135,8 +135,6 @@ class MainNode():
         self.set_bookcase_pub.publish("led off")
         print("execute : LED off")
 
-        
-
     def run(self):
         while True:
             if (len(self.taskque) is not 0) and (self.ac_info is not "None"): # running task
@@ -174,9 +172,6 @@ class MainNode():
             else: # waiting task
                 self.taskflag = False
 
-
-
-#
 def main():
     rospy.init_node("Collabot_main")
     print("#############################################################################")
@@ -190,16 +185,13 @@ def main():
     print("############################################################################# \n") 
     node = MainNode()
     rospy.loginfo("Starting Main Node thread...")
-    exec_threade = threading.Thread(target=node.run)
-    exec_threade.daemon=True
-    exec_threade.start()
+    exec_thread = threading.Thread(target=node.run)
+    exec_thread.daemon=True
+    exec_thread.start()
     rospy.loginfo("Main Node Ready.")
     rospy.loginfo("Press Ctrl+C to exit.")
     rospy.loginfo("Waiting Bluetooth Input...")
     rospy.spin()
-
-
-
 
 if __name__=="__main__":
     main()
