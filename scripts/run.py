@@ -35,7 +35,7 @@ class MainNode():
         self.taskque = deque()
         self.ac_info = None
         self.taskflag = False
-        
+
         self.bodytracker_sub = rospy.Subscriber("bt_result", bt_data, self.bt_callback)
         self.bookcase_num_sub = rospy.Subscriber("bluetooth_input", String, self.bluetooth_callback)
         rospy.set_param('kill', False)
@@ -43,7 +43,7 @@ class MainNode():
 
         self.set_bookcase_pub = rospy.Publisher("set_bookcase", String, queue_size=10)
         # move_turtlebot contained : 0,1,2.3 (1,2,3 means bookcase number, 0 means reset)
-        self.cmd_turtlebot_pub = rospy.Publisher("move_turtlebot", String, queue_size=10)
+        self.move_turtlebot_pub = rospy.Publisher("move_turtlebot", String, queue_size=10)
         srv = Server(collabot_doConfig, config_callback)
 
     def node_spin(self):
@@ -92,15 +92,24 @@ class MainNode():
 
     def subtask_reset(self):
         self.set_bookcase_pub.publish("reset")
-        print("execute : Reset")
+        print(f"execute : Reset     count {self.count} >>> 0")
+        self.count = 0
+        self.taskflag = False
 
     def subtask_turtlebot_move(self,bookcasenum):
-        self.cmd_turtlebot_pub.publish(bookcasenum)
-        print("execute : Move turtlebot")
+        if self.ac_info == "adult":
+            self.move_turtlebot_pub.publish("move 0")
+            print("execute : Move turtlebot <<< support adult")
+        elif self.ac_info == "child":
+            self.move_turtlebot_pub.publish("move " + bookcasenum)
+            print("execute : Move turtlebot <<< support child")
 
     def subtask_turtlebot_reset(self):
-        self.cmd_turtlebot_pub.publish(0)
-        print("execute : Reset turtlebot")
+        if self.ac_info == "adult":
+            self.move_turtlebot_pub.publish("reset a")
+        elif self.ac_info == "child":
+            self.move_turtlebot_pub.publish("reset c")
+        print("execute : Move turtlebot <<< reset")
 
     def wait_motor_open(self,open_time):
         print("execute : Waiting motor open...")
@@ -157,9 +166,6 @@ class MainNode():
                     self.subtask_close()
                     
                 elif self.taskque[0] == "reset":
-                    self.count = 0
-                    
-                    print(f"Book count   : {self.count}")
                     print("+------------------- Exec Info -------------------+")
                     if turtlebot_condition:
                         self.subtask_turtlebot_reset()
@@ -170,7 +176,8 @@ class MainNode():
                 # self.ac_info = None
                 print("+-------------------------------------------------+\n\n")
             else: # waiting task
-                self.taskflag = False
+                pass
+                # self.taskflag = False
 
 def main():
     rospy.init_node("Collabot_main")

@@ -82,12 +82,12 @@ void readcmdCallback(const std_msgs::String &msg){
   nh.loginfo("Command Received.");
 	int separatorIndex = cmd.indexOf(cmd_seperator);
   if (separatorIndex != -1) {
-      cmd_target = cmd.substring(0, separatorIndex);
-      cmd_action = cmd.substring(separatorIndex + 1);
+    cmd_target = cmd.substring(0, separatorIndex);
+    cmd_action = cmd.substring(separatorIndex + 1);
   } 
 	else {
-      cmd_action = cmd;
-			cmd_target = "";
+    cmd_action = cmd;
+    cmd_target = "";
   }
   run(cmd_action, cmd_target);
 }
