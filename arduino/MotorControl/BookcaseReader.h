@@ -8,7 +8,7 @@ class BookcaseReader
 public:
   BookcaseReader(HardwareSerial& serial, ros::NodeHandle& nh);
   ~BookcaseReader();
-  void init(int baudrate);
+  void init(const int baudrate);
   void read();
 
 private:

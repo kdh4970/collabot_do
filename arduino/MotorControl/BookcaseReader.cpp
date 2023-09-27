@@ -6,7 +6,7 @@ BookcaseReader::BookcaseReader(HardwareSerial& serial, ros::NodeHandle& nh)
   this->_nh = &nh;
 };
 
-void BookcaseReader::init(int baudrate)
+void BookcaseReader::init(const int baudrate)
 {
   _serial.begin(baudrate);
   this->_nh->advertise(bluetooth_input_pub);
