@@ -32,7 +32,6 @@ bool motor_open[9] = {false,};
 uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
 bool start_flag = false;
 
-
 // Open the bookcase of given motor_num
 void OpenBookcase(int motor_num){
   if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
@@ -73,8 +72,6 @@ void run(const String action,const String target){
   }
 }
 
-
-//
 // The callback function of the topic set_bookcasae. seperate the target and action.
 void readcmdCallback(const std_msgs::String &msg){
 	String cmd = "";
@@ -98,13 +95,11 @@ void readcmdCallback(const std_msgs::String &msg){
 // bookN open / bookN close / reset     (N = 1~9)
 ros::Subscriber<std_msgs::String> command("set_bookcase", readcmdCallback); 
 
-
 void setup() {
   nh.initNode();
   nh.subscribe(command);
   Serial.begin(9600);
   bookcaseReader.init(9600);
-
   const char *log;
   dxl_wb.init(DEVICE_NAME, BAUDRATE, &log);
 
@@ -115,7 +110,6 @@ void setup() {
     dxl_wb.getPresentPositionData(motor[i], &presentposition[i], &log);
     initial_pos[i] = presentposition[i];
   }
-
   pinMode(7, OUTPUT);
 }
 
@@ -131,5 +125,4 @@ void loop() {
     bookcaseReader.read();
     nh.spinOnce();
   }
-
 }
