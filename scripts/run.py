@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from std_msgs.msg import String, Int32
+from std_msgs.msg import String
 from azbt_msgs.msg import Elem, bt_data
 from collections import deque
 import threading
@@ -8,7 +8,7 @@ import signal
 import os,sys
 from dynamic_reconfigure.server import Server
 from collabot_do.cfg import collabot_doConfig
-from collabot_do.srv import call_ssim,call_ssimResponse
+from collabot_do.srv import call_ssim
 
 def signal_handler(sig, frame):
     print('Killing Process...')
@@ -55,9 +55,9 @@ class MainNode():
 
     def bluetooth_callback(self, msg):
         input_cmd = msg.data
+        print("\n>>> Received bluetooth input : {}".format(input_cmd))
         self.taskque.append(input_cmd)
-        print("Received bluetooth input: {}".format(input_cmd))
-        print(f"Task added   : {input_cmd}")
+        print(f"<<< Task Queue : {list(map(str,self.taskque))} <<< new task added : {input_cmd}\n")
 
     def bt_callback(self, msg):
         global ac_threshold
@@ -143,7 +143,7 @@ class MainNode():
             if (len(self.taskque) is not 0) and (self.ac_info is not "None"): # running task
                 turtlebot_condition = (self.ac_info == "adult" and self.count>=3) or (self.ac_info == "child" and self.taskque[0][4] in ["1","2","3"])
                 print("+------------------- Task Info -------------------+")
-                print(f"Task Queue   : {self.taskque}")
+                print(f"Task Queue   : {list(map(str,self.taskque))}")
                 print(f"Current Task : {self.taskque[0]}")
                 print(f"User         : {self.ac_info}")
                 self.taskflag = True
