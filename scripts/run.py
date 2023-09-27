@@ -36,16 +36,16 @@ class MainNode():
         self.ac_info = None
         self.taskflag = False
 
-        self.bodytracker_sub = rospy.Subscriber("bt_result", bt_data, self.bt_callback)
-        self.bookcase_num_sub = rospy.Subscriber("bluetooth_input", String, self.bluetooth_callback)
+        self.bodytracker_sub = rospy.Subscriber('bt_result', bt_data, self.bt_callback)
+        self.bookcase_num_sub = rospy.Subscriber('bluetooth_input', String, self.bluetooth_callback)
         rospy.set_param('kill', False)
         ac_threshold = rospy.get_param('ac_threshold', 150.)
 
-        self.set_bookcase_pub = rospy.Publisher("set_bookcase", String, queue_size=10)
+        self.set_bookcase_pub = rospy.Publisher('set_bookcase', String, queue_size=10)
         # move_turtlebot contained : 0,1,2.3 (1,2,3 means bookcase number, 0 means reset)
-        self.move_turtlebot_pub = rospy.Publisher("move_turtlebot", String, queue_size=10)
+        self.move_turtlebot_pub = rospy.Publisher('/move_turtlebot', String, queue_size=10)
         srv = Server(collabot_doConfig, config_callback)
-
+        self.turtlebot_moved = False
     def node_spin(self):
         rospy.loginfo("Main Node Ready.")
         rospy.loginfo("Press Ctrl+C to exit.")
@@ -97,19 +97,24 @@ class MainNode():
         self.taskflag = False
 
     def subtask_turtlebot_move(self,bookcasenum):
-        if self.ac_info == "adult":
+        if (self.ac_info == "adult" and self.count>=3):
             self.move_turtlebot_pub.publish("move 0")
-            print("execute : Move turtlebot <<< support adult")
-        elif self.ac_info == "child":
+            print("execute : Move turtlebot <<< support adult 0")
+            self.turtlebot_moved = True
+        elif (self.ac_info == "child" and self.taskque[0][4] in ["1","2","3"]):
             self.move_turtlebot_pub.publish("move " + bookcasenum)
-            print("execute : Move turtlebot <<< support child")
+            print(f"execute : Move turtlebot <<< support child {bookcasenum}")
+            self.turtlebot_moved = True
 
     def subtask_turtlebot_reset(self):
-        if self.ac_info == "adult":
+        if (self.ac_info == "adult" and self.turtlebot_moved):
             self.move_turtlebot_pub.publish("reset a")
-        elif self.ac_info == "child":
+            print("execute : Move turtlebot <<< reset a")
+            self.turtlebot_moved = False
+        elif (self.ac_info == "child" and self.turtlebot_moved):
             self.move_turtlebot_pub.publish("reset c")
-        print("execute : Move turtlebot <<< reset")
+            print("execute : Move turtlebot <<< reset c")
+            self.turtlebot_moved = False
 
     def wait_motor_open(self,open_time):
         print("execute : Waiting motor open...")
@@ -155,10 +160,10 @@ class MainNode():
                 self.taskflag = True
                 if self.taskque[0][:4] == "book":
                     self.count += 1
+                    
                     print(f"Book count   : {self.count}")
                     print("+------------------- Exec Info -------------------+")
-                    if turtlebot_condition:
-                        self.subtask_turtlebot_move(int(self.taskque[0][4]))
+                    self.subtask_turtlebot_move(self.taskque[0][4])
                     self.subtask_open()
                     self.wait_motor_open(rospy.Time.now().secs)
                     self.subtask_ssim(int(self.taskque[0][4]))
@@ -167,8 +172,7 @@ class MainNode():
                     
                 elif self.taskque[0] == "reset":
                     print("+------------------- Exec Info -------------------+")
-                    if turtlebot_condition:
-                        self.subtask_turtlebot_reset()
+                    self.subtask_turtlebot_reset()
                     self.subtask_reset()
                 else:pass
                 

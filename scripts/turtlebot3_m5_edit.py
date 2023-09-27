@@ -38,7 +38,7 @@ class stool:
         # do added start
         self.action = None
         self.target = None
-        self.move_turtlebot_sub = rospy.Subscriber("move_turtlebot", String, self.cmd_callback)
+        self.move_turtlebot_sub = rospy.Subscriber("/move_turtlebot", String, self.cmd_callback)
         # do added end
 
         # original code
@@ -58,7 +58,6 @@ class stool:
     # do added
     def cmd_callback(self, msg):
         self.action, self.target = map(str, msg.data.split())
-        self.target = int(self.target)
 
         if self.action == "move":
             # case of adult count>=3
@@ -66,7 +65,8 @@ class stool:
                 self.movebase_client(a[0], a[1], a[2], a[3])
             # case of child 1,2,3
             elif self.target in [1, 2, 3]: 
-                self.movebase_client(new_c[self.target-1][0], new_c[self.target-1][1], new_c[self.target-1][2], new_c[self.target-1][3])
+                book_idx = int(self.target)-1
+                self.movebase_client(new_c[book_idx][0], new_c[book_idx][1], new_c[book_idx][2], new_c[book_idx][3])
         elif self.action == "reset":
             if self.target == "a":
                 self.movebase_client(a_r1[0], a_r1[1], a_r1[2], a_r1[3])
