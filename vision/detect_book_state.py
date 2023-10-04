@@ -10,11 +10,17 @@ from std_msgs.msg import String
 from pathlib import Path
 from detect_drawer import DetectDrawer
 from optical_flow import OpticalFlow
-
+import sys,signal,time
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]
 
 print(ROOT)
+
+def signal_handler(sig, frame):
+    print('Killing Process...')
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 class DetectBook:
     def __init__(self):
@@ -23,11 +29,11 @@ class DetectBook:
         self.opt = self.parser_opt()
         self.detect_drawer = DetectDrawer(**vars(self.opt))
         self.optical_flow = OpticalFlow()
-
         self.find_drawer = True
         self.book_state = False
         self.roi = None
         self.trig = False
+        self.start_detect=None
         print("Finished <<< Setting Up")
 
     def callback(self, msgs):
@@ -49,6 +55,7 @@ class DetectBook:
             msg.data = 'no detect'
 
         self.pub.publish(msg)
+        print("result published!")
 
 
     # yolo parameters
@@ -82,7 +89,7 @@ class DetectBook:
             if not ret:
                 rospy.logfatal("no data")
                 break
-            
+            ## 콜백이 들어오면 실행.
             if self.find_drawer:
                 self.detect_drawer.run(frame)
 
@@ -91,19 +98,21 @@ class DetectBook:
 
                     self.find_drawer = False
                     
-                    start_detect = rospy.get_rostime()
+                    self.start_detect = rospy.get_rostime()
 
-            
+            # curr_time = rospy.get_rostime()
+            # if self.start_detect is not None and self.start_detect.secs - curr_time.secs < 3:
+            #     continue 
+
             if self.roi is not None and self.find_drawer is False:
-                now = rospy.get_rostime() 
-                               
+                now = rospy.get_rostime()
                 roi_img, ori_img, self.trig = self.optical_flow.run(frame, self.roi)
                 
-                if start_detect.secs - now.secs > 10:
+                if self.start_detect.secs - now.secs > 15:
                     self.publish()
 
                 if self.trig:
-                    rospy.loginfo(str(self.trig))
+                    print(f"running optical flow... : {str(self.trig)}")
                     self.book_state = True
                     self.publish()
 
@@ -119,7 +128,7 @@ class DetectBook:
             
             if cv2.waitKey(int(1000/fps)) & 0xFF == ord('q'):
                 rospy.loginfo('quit')
-                break
+                continue
 
         cap.release()
         cv2.destroyAllWindows()
@@ -129,7 +138,7 @@ if __name__ == "__main__":
     rospy.init_node('detect_book_state')
     print("Starting...")
     # Using Camera
-    source = 0
+    source = 2
     
     # Using video
     #source = '/home/enbang/catkin_ws/src/Collabot/datasets/data_0822/video/57.mp4'
