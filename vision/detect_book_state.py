@@ -17,7 +17,7 @@ ROOT = FILE.parents[0]
 print(ROOT)
 cap = None
 
-def signal_handler(sig, frame):
+def signal_handler(sig=None, frame=None):
     print('Killing Process...')
     if cap is not None:
         cap.release()
@@ -99,6 +99,8 @@ class DetectBook:
         fps = cap.get(cv2.CAP_PROP_FPS)
         
         while True:
+            if rospy.get_param('kill'):
+                signal_handler()
             ret, frame = cap.read()
             
             if not ret:
@@ -110,6 +112,9 @@ class DetectBook:
                 now = rospy.get_rostime()
                 if now.secs - self.signal_time.secs > 3:
                     self.find_drawer = False
+                    cv2.putText(frame,"Detection Failure",(20,660),color=(0,0,255),fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=1,thickness=2,lineType=cv2.LINE_AA)
+                    cv2.imshow('ori_img', frame)
+                    cv2.waitKey(1)
                     self.respond_publish()
 
                 if self.detect_drawer.avg_roi is not None:
@@ -126,11 +131,15 @@ class DetectBook:
                 roi_img, ori_img, self.trig = self.optical_flow.run(frame, self.roi)
                 
                 if now.secs - self.start_detect.secs > 5 :
+                    cv2.putText(ori_img,"Time out",(20,660),color=(255,0,0),fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=1,thickness=2,lineType=cv2.LINE_AA)
+                    cv2.imshow('ori_img', ori_img)
                     self.respond_publish()
+                    
 
                 if self.trig:
                     print(f"running optical flow... : {str(self.trig)}")
                     self.book_state = True
+                    cv2.putText(ori_img,"Detected",(20,660),color=(0,255,0),fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=1,thickness=2,lineType=cv2.LINE_AA)
                     self.respond_publish()
 
                     self.trig = False
