@@ -57,6 +57,7 @@ class OpticalFlow:
         
         if roi_height < 0:
             roi_height = 0
+            self.H = int(roi[3].item()*2/3)
 
         roi_img = image.copy()[int(roi_height):int(roi[3].item()), int(roi[0].item() + 10):int(roi[2].item()), ::1]
         y_ch = self.y_channel(roi_img)

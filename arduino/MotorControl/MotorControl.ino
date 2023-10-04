@@ -10,6 +10,7 @@
 
 #define BAUDRATE  57600
 
+#define MOTOR0  0
 #define MOTOR1  1
 #define MOTOR2  2
 #define MOTOR3  3
@@ -19,6 +20,7 @@
 #define MOTOR7  7
 #define MOTOR8  8
 #define MOTOR9  9
+#define MOTOR10  10
 
 DynamixelWorkbench dxl_wb;
 
@@ -28,14 +30,14 @@ uint16_t model_number = 0;
 int32_t presentposition[13];
 int initial_pos[13] = {0,};
 
-bool motor_open[9] = {false,};
-uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
+bool motor_open[10] = {false,};
+uint8_t motor[13] = {MOTOR0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9, MOTOR10};
 bool start_flag = false;
 
 
 // Open the bookcase of given motor_num
 void OpenBookcase(int motor_num){
-  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
+  if(motor_num > 10 & motor_num < 0) return; // motor_num이 1~9가 아닌 경우 return
   if(!motor_open[motor_num-1]){
     dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 7900));
     motor_open[motor_num-1] = true;
@@ -44,7 +46,7 @@ void OpenBookcase(int motor_num){
 
 // Close the bookcase of given motor_num
 void CloseBookcase(int motor_num){
-  if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
+  if(motor_num > 10 & motor_num < 0) return; // motor_num이 1~9가 아닌 경우 return
   if(motor_open[motor_num-1]){
     dxl_wb.goalPosition(motor[motor_num], (int32_t)(initial_pos[motor_num] + 100));
     motor_open[motor_num-1] = false;
@@ -105,7 +107,7 @@ void readcmdCallback(const std_msgs::String &msg){
   run(cmd_action, cmd_target);
 }
 
-// bookN open / bookN close / reset / done     (N = 1~9)
+// bookN open / bookN close / reset / done     (N = 1~10)
 ros::Subscriber<std_msgs::String> command("set_bookcase", readcmdCallback); 
 
 
@@ -118,7 +120,7 @@ void setup() {
   const char *log;
   dxl_wb.init(DEVICE_NAME, BAUDRATE, &log);
 
-  for(size_t i{1};i<10;i++){
+  for(size_t i{0};i<10;i++){
     dxl_wb.ping(motor[i], &model_number, &log);
     dxl_wb.setExtendedPositionControlMode(motor[i], &log);
     dxl_wb.torqueOn(motor[i], &log);

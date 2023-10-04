@@ -1,6 +1,6 @@
 <launch>
    <node pkg= "collabot_do" type="l_ssim.py" name="ssim" output="screen">
-      <param name="video" value="2"/>
+      <param name="video" value="3"/>
    </node>
    <node pkg= "collabot_do" type="ssim_graph.py" name="ssim_graph" output="screen"/>
 </launch>

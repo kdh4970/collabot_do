@@ -98,5 +98,5 @@ class DetectDrawer:
 
             if len(self.bbox_coordinates) == bbox_num and self.avg_roi == None:
                 self.avg_roi = self.compute_avg_roi(self.bbox_coordinates)
-
+                self.bbox_coordinates = []
                 return 

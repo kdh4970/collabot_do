@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import argparse
 
-from std_msgs.msg import String
+from std_msgs.msg import String,Bool,Int16
 from pathlib import Path
 from detect_drawer import DetectDrawer
 from optical_flow import OpticalFlow
@@ -15,21 +15,24 @@ FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]
 
 print(ROOT)
+cap = None
 
 def signal_handler(sig, frame):
     print('Killing Process...')
+    if cap is not None:
+        cap.release()
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
 
 class DetectBook:
     def __init__(self):
-        self.pub = rospy.Publisher('/detect', String, queue_size=5)
-        self.sub = rospy.Subscriber('/set_bookcase', String, callback=self.callback)
+        self.pub = rospy.Publisher('of_respond', Bool, queue_size=5)
+        self.sub = rospy.Subscriber('/of_call', Int16, callback=self.callback)
         self.opt = self.parser_opt()
         self.detect_drawer = DetectDrawer(**vars(self.opt))
         self.optical_flow = OpticalFlow()
-        self.find_drawer = True
+        self.find_drawer = False
         self.book_state = False
         self.roi = None
         self.trig = False
@@ -40,22 +43,33 @@ class DetectBook:
         # state: open
         # state: close
         print("callback")
-        if msgs.data[7:] == 'open':
-            self.find_drawer = True
-
-
-    def publish(self):
-        # state: diff
-        msg = String()
-
-        if self.book_state: 
-            msg.data = 'detect'
         
+        if msgs.data in [0,1,2,5,6,7,9]: # call detector and optical flow.
+            print(f"receive {msgs.data}")
+            self.signal_time = rospy.get_rostime()
+            self.find_drawer = True
         else:
-            msg.data = 'no detect'
+            print(f"receive {msgs.data}")
+            #추가 처리
 
-        self.pub.publish(msg)
+        # if msgs.data[6:] == 'open':
+        #     print("here")
+        #     self.find_drawer = True
+        #     self.signal_time = rospy.get_rostime()
+        # elif msgs.data[6:] == 'close':
+        #     self.optical_flow = OpticalFlow()
+        #     self.roi = None
+        #     self.book_state = False
+        #     self.find_drawer = False
+
+
+    def respond_publish(self):
+        self.pub.publish(self.book_state)
         print("result published!")
+        self.optical_flow = OpticalFlow()
+        self.roi = None
+        self.book_state = False
+        self.find_drawer = False
 
 
     # yolo parameters
@@ -76,6 +90,7 @@ class DetectBook:
 
 
     def run(self, source):
+        global cap
         source = str(source)
 
         cap = cv2.VideoCapture(int(source) if source.isnumeric() else str(source))
@@ -89,32 +104,34 @@ class DetectBook:
             if not ret:
                 rospy.logfatal("no data")
                 break
-            ## 콜백이 들어오면 실행.
+
             if self.find_drawer:
                 self.detect_drawer.run(frame)
+                now = rospy.get_rostime()
+                if now.secs - self.signal_time.secs > 3:
+                    self.find_drawer = False
+                    self.respond_publish()
 
                 if self.detect_drawer.avg_roi is not None:
                     self.roi = self.detect_drawer.avg_roi
-
+                    self.detect_drawer.avg_roi=None
                     self.find_drawer = False
                     
                     self.start_detect = rospy.get_rostime()
 
-            # curr_time = rospy.get_rostime()
-            # if self.start_detect is not None and self.start_detect.secs - curr_time.secs < 3:
-            #     continue 
+            
 
             if self.roi is not None and self.find_drawer is False:
                 now = rospy.get_rostime()
                 roi_img, ori_img, self.trig = self.optical_flow.run(frame, self.roi)
                 
-                if self.start_detect.secs - now.secs > 15:
-                    self.publish()
+                if now.secs - self.start_detect.secs > 5 :
+                    self.respond_publish()
 
                 if self.trig:
                     print(f"running optical flow... : {str(self.trig)}")
                     self.book_state = True
-                    self.publish()
+                    self.respond_publish()
 
                     self.trig = False
 
@@ -123,12 +140,13 @@ class DetectBook:
                     self.roi = None
                     self.book_state = False
                     
-
+                cv2.imshow('ori_img', ori_img)
                 cv2.imshow('roi_img', roi_img)
-            
-            if cv2.waitKey(int(1000/fps)) & 0xFF == ord('q'):
-                rospy.loginfo('quit')
-                continue
+
+                cv2.waitKey(1)
+            # if cv2.waitKey(int(1000/fps)) & 0xFF == ord('q'):
+            #     rospy.loginfo('quit')
+            #     continue
 
         cap.release()
         cv2.destroyAllWindows()

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import rospy
-from std_msgs.msg import String
+from std_msgs.msg import String,Bool,Int16
 from azbt_msgs.msg import Elem, bt_data
 from collections import deque
 import threading
 import signal
-import os,sys
+import os,sys,time
 from dynamic_reconfigure.server import Server
 from collabot_do.cfg import collabot_doConfig
 from collabot_do.srv import call_ssim
@@ -35,7 +35,7 @@ class MainNode():
         self.taskque = deque()
         self.ac_info = None
         self.taskflag = False
-
+        self.turtlebot_moved = False
         self.bodytracker_sub = rospy.Subscriber('bt_result', bt_data, self.bt_callback)
         self.bookcase_num_sub = rospy.Subscriber('bluetooth_input', String, self.bluetooth_callback)
         rospy.set_param('kill', False)
@@ -44,13 +44,25 @@ class MainNode():
         self.set_bookcase_pub = rospy.Publisher('set_bookcase', String, queue_size=10)
         # move_turtlebot contained : 0,1,2.3 (1,2,3 means bookcase number, 0 means reset)
         self.move_turtlebot_pub = rospy.Publisher('/move_turtlebot', String, queue_size=10)
+
+        # this for optical flow
+        self.optical_flow_pub = rospy.Publisher('of_call',Int16,queue_size=2)
+        self.optical_flow_sub = rospy.Subscriber('of_respond',Bool,self.of_callback)
+        self.of_signal = False
+
+        # this for ssim
         srv = Server(collabot_doConfig, config_callback)
-        self.turtlebot_moved = False
+        
     def node_spin(self):
         rospy.loginfo("Main Node Ready.")
         rospy.loginfo("Press Ctrl+C to exit.")
         rospy.loginfo("Waiting Bluetooth Input...")
         rospy.spin()
+
+    def of_callback(self,msg):
+        if msg.data is not None:
+            print(f"optical flow returns {msg.data}")
+            self.of_signal = True
 
     def bluetooth_callback(self, msg):
         input_cmd = msg.data
@@ -127,12 +139,21 @@ class MainNode():
         print("execute : Calling SSIM server...")
         try:
             ssim_server = rospy.ServiceProxy('ssim_server', call_ssim)
-            print("execute : SSIM attached!")
+            print("info    : SSIM attached!")
             result = ssim_server(bookcase_num)
-            print(f"execute : SSIM respond {result}")
+            print(f"respond : SSIM respond {result}")
         except rospy.ServiceException as e:
             print("error : Service call failed: %s"%e)
-        
+
+    def subtask_of(self,bookcase_num):
+        print("execute : call optical flow detector")
+        self.optical_flow_pub.publish(bookcase_num)
+        while not self.of_signal:
+            time.sleep(0.1)
+        self.of_signal=False
+        print("respond : optical flow finished")
+
+
     # ssim 끝나면 led키고, 몇초 기다린다음 닫기  #348 5초 나머지 1.5초
     def ssim_light(self):
         on_time = rospy.Time.now().secs
@@ -166,7 +187,12 @@ class MainNode():
                     self.subtask_turtlebot_move(self.taskque[0][4])
                     self.subtask_open()
                     self.wait_motor_open(rospy.Time.now().secs)
-                    self.subtask_ssim(int(self.taskque[0][4]))
+                    if self.taskque[0][4] in ["0","1","2","5","6","7","9"]:
+                        self.subtask_of(int(self.taskque[0][4]))
+                    elif self.taskque[0][4] in ["3","4","8"]:
+                        self.subtask_ssim(int(self.taskque[0][4]))
+                    else:
+                        pass
                     self.ssim_light()
                     self.subtask_close()
                     
