@@ -32,6 +32,7 @@ bool motor_open[9] = {false,};
 uint8_t motor[13] = {0, MOTOR1, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6, MOTOR7, MOTOR8, MOTOR9};
 bool start_flag = false;
 
+
 // Open the bookcase of given motor_num
 void OpenBookcase(int motor_num){
   if(motor_num > 9 & motor_num < 1) return; // motor_num이 1~9가 아닌 경우 return
@@ -59,9 +60,19 @@ void Reset(){
 void run(const String action,const String target){
   if(action == "open"){
     OpenBookcase(target.substring(4).toInt());
+    // for(size_t i{1};i<10;i++){
+      // OpenBookcase(i);
+    // }
   }
   else if(action == "close"){
     CloseBookcase(target.substring(4).toInt());
+    // for(size_t i{1};i<10;i++){
+    //   CloseBookcase(i);
+    // }
+  }
+  else if(action == "done"){
+    // task_flag = false;
+    int temp=0;
   }
   else if(action == "reset"){
     Reset();
@@ -72,6 +83,8 @@ void run(const String action,const String target){
   }
 }
 
+
+
 // The callback function of the topic set_bookcasae. seperate the target and action.
 void readcmdCallback(const std_msgs::String &msg){
 	String cmd = "";
@@ -81,25 +94,27 @@ void readcmdCallback(const std_msgs::String &msg){
   cmd = msg.data;
   nh.loginfo("Command Received.");
 	int separatorIndex = cmd.indexOf(cmd_seperator);
-  if (separatorIndex != -1) {
-    cmd_target = cmd.substring(0, separatorIndex);
-    cmd_action = cmd.substring(separatorIndex + 1);
+  if (separatorIndex != -1) { // cmd book1 open
+      cmd_target = cmd.substring(0, separatorIndex);
+      cmd_action = cmd.substring(separatorIndex + 1);
   } 
 	else {
-    cmd_action = cmd;
-    cmd_target = "";
+      cmd_action = cmd;
+			cmd_target = "";
   }
   run(cmd_action, cmd_target);
 }
 
-// bookN open / bookN close / reset     (N = 1~9)
+// bookN open / bookN close / reset / done     (N = 1~9)
 ros::Subscriber<std_msgs::String> command("set_bookcase", readcmdCallback); 
+
 
 void setup() {
   nh.initNode();
   nh.subscribe(command);
   Serial.begin(9600);
   bookcaseReader.init(9600);
+
   const char *log;
   dxl_wb.init(DEVICE_NAME, BAUDRATE, &log);
 
@@ -110,6 +125,7 @@ void setup() {
     dxl_wb.getPresentPositionData(motor[i], &presentposition[i], &log);
     initial_pos[i] = presentposition[i];
   }
+
   pinMode(7, OUTPUT);
 }
 
@@ -125,4 +141,5 @@ void loop() {
     bookcaseReader.read();
     nh.spinOnce();
   }
+
 }
