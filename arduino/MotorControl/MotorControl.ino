@@ -137,7 +137,7 @@ void loop() {
   while (nh.connected()) 
   {
     if(start_flag == false){
-      nh.loginfo("========== OpenCR Ready! ==========");
+      nh.loginfo("=============== OpenCR Ready! ===============");
       start_flag = true;
     }
     bookcaseReader.read();

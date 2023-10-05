@@ -58,7 +58,7 @@ class MainNode():
         
         
     def node_spin(self):
-        rospy.loginfo("Main Node Ready.")
+        rospy.loginfo("=============== Main Ready! ===============")
         rospy.loginfo("Press Ctrl+C to exit.")
         rospy.loginfo("Waiting Bluetooth Input...")
         rospy.spin()
