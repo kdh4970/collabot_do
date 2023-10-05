@@ -236,7 +236,7 @@ def main():
     exec_thread = threading.Thread(target=node.run)
     exec_thread.daemon=True
     exec_thread.start()
-    rospy.loginfo("Main Node Ready.")
+    rospy.loginfo("=============== Main Node Ready! ===============")
     rospy.loginfo("Press Ctrl+C to exit.")
     rospy.loginfo("Waiting Bluetooth Input...")
     rospy.spin()
