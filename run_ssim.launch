@@ -1,0 +1,6 @@
+<launch>
+   <node pkg= "collabot_do" type="run.py" name="Collabot_main" output="screen">
+      <param name="detection_method" value="ssim"/>
+   </node>
+</launch>
+

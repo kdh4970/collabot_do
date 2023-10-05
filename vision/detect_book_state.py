@@ -37,6 +37,7 @@ class DetectBook:
         self.roi = None
         self.trig = False
         self.start_detect=None
+        
         print("Finished <<< Setting Up")
 
     def callback(self, msgs):
@@ -50,19 +51,7 @@ class DetectBook:
             self.find_drawer = True
         else:
             print(f"receive {msgs.data}")
-            #추가 처리
-
-        # if msgs.data[6:] == 'open':
-        #     print("here")
-        #     self.find_drawer = True
-        #     self.signal_time = rospy.get_rostime()
-        # elif msgs.data[6:] == 'close':
-        #     self.optical_flow = OpticalFlow()
-        #     self.roi = None
-        #     self.book_state = False
-        #     self.find_drawer = False
-
-
+            
     def respond_publish(self):
         self.pub.publish(self.book_state)
         print("result published!")

@@ -10,6 +10,7 @@ from dynamic_reconfigure.server import Server
 from collabot_do.cfg import collabot_doConfig
 from collabot_do.srv import call_ssim
 
+
 def signal_handler(sig, frame):
     print('Killing Process...')
     rospy.set_param('kill', True)
@@ -31,6 +32,8 @@ def config_callback(config, level):
 class MainNode():
     def __init__(self):
         global ac_threshold
+        self.detection_method = rospy.get_param('~detection_method')
+        print(f"Detection Method : {self.detection_method}")
         self.count = 0
         self.taskque = deque()
         self.ac_info = None
@@ -38,7 +41,7 @@ class MainNode():
         self.turtlebot_moved = False
         self.bodytracker_sub = rospy.Subscriber('bt_result', bt_data, self.bt_callback)
         self.bookcase_num_sub = rospy.Subscriber('bluetooth_input', String, self.bluetooth_callback)
-        rospy.set_param('kill', False)
+        
         ac_threshold = rospy.get_param('ac_threshold', 150.)
 
         self.set_bookcase_pub = rospy.Publisher('set_bookcase', String, queue_size=10)
@@ -46,12 +49,14 @@ class MainNode():
         self.move_turtlebot_pub = rospy.Publisher('/move_turtlebot', String, queue_size=10)
 
         # this for optical flow
-        self.optical_flow_pub = rospy.Publisher('of_call',Int16,queue_size=2)
-        self.optical_flow_sub = rospy.Subscriber('of_respond',Bool,self.of_callback)
-        self.of_signal = False
+        if self.detection_method == 'optical_flow':
+            self.optical_flow_pub = rospy.Publisher('of_call',Int16,queue_size=2)
+            self.optical_flow_sub = rospy.Subscriber('of_respond',Bool,self.of_callback)
+            self.of_signal = False
 
         # this for ssim
-        srv = Server(collabot_doConfig, config_callback)
+        elif self.detection_method == 'ssim':
+            srv = Server(collabot_doConfig, config_callback)
         
     def node_spin(self):
         rospy.loginfo("Main Node Ready.")
@@ -187,12 +192,15 @@ class MainNode():
                     self.subtask_turtlebot_move(self.taskque[0][4])
                     self.subtask_open()
                     self.wait_motor_open(rospy.Time.now().secs)
-                    if self.taskque[0][4] in ["0","1","2","5","6","7","9"]:
-                        self.subtask_of(int(self.taskque[0][4]))
-                    elif self.taskque[0][4] in ["3","4","8"]:
+                    if self.detection_method == 'optical_flow':
+                        if self.taskque[0][4] in ["0","1","2","5","6","7","9"]:
+                            self.subtask_of(int(self.taskque[0][4]))
+                        elif self.taskque[0][4] in ["3","4","8"]:
+                            print("[Warning] Optical Flow does not support for bookcase 3 or 4 or 8 ")
+                        else:
+                            pass
+                    elif self.detection_method == 'ssim':
                         self.subtask_ssim(int(self.taskque[0][4]))
-                    else:
-                        pass
                     self.ssim_light()
                     self.subtask_close()
                     
@@ -220,6 +228,9 @@ def main():
     print("##       ####    ####     ##  ##  ##    ##  #####     ####       ##        ##")
     print("##                                                                         ##")
     print("############################################################################# \n") 
+    print("Waiting...")
+    rospy.set_param('kill', False)
+    time.sleep(5)
     node = MainNode()
     rospy.loginfo("Starting Main Node thread...")
     exec_thread = threading.Thread(target=node.run)
