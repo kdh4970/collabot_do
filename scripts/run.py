@@ -43,6 +43,7 @@ class MainNode():
         self.bookcase_num_sub = rospy.Subscriber('bluetooth_input', String, self.bluetooth_callback)
         
         ac_threshold = rospy.get_param('ac_threshold', 150.)
+        srv = Server(collabot_doConfig, config_callback)
 
         self.set_bookcase_pub = rospy.Publisher('set_bookcase', String, queue_size=10)
         # move_turtlebot contained : 0,1,2.3 (1,2,3 means bookcase number, 0 means reset)
@@ -54,9 +55,7 @@ class MainNode():
             self.optical_flow_sub = rospy.Subscriber('of_respond',Bool,self.of_callback)
             self.of_signal = False
 
-        # this for ssim
-        elif self.detection_method == 'ssim':
-            srv = Server(collabot_doConfig, config_callback)
+        
         
     def node_spin(self):
         rospy.loginfo("Main Node Ready.")
@@ -98,6 +97,7 @@ class MainNode():
                 else:
                     self.ac_info = "child"
                 pass
+        rospy.logdebug("curr state : %s",self.ac_info)
     
     def subtask_open(self):
         self.set_bookcase_pub.publish(self.taskque[0]+" open")
