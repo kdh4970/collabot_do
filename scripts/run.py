@@ -13,7 +13,6 @@ from collabot_do.srv import call_ssim
 
 def signal_handler(sig, frame):
     print('Killing Process...')
-    rospy.set_param('kill', True)
     rospy.sleep(1.5)
     kill_command = "rosnode kill -a"
     os.system(kill_command)
@@ -49,19 +48,13 @@ class MainNode():
         # move_turtlebot contained : 0,1,2.3 (1,2,3 means bookcase number, 0 means reset)
         self.move_turtlebot_pub = rospy.Publisher('/move_turtlebot', String, queue_size=10)
 
+        self.ac_pub = rospy.Publisher('/ac_info', String, queue_size=2)
         # this for optical flow
         if self.detection_method == 'optical_flow':
             self.optical_flow_pub = rospy.Publisher('of_call',Int16,queue_size=2)
             self.optical_flow_sub = rospy.Subscriber('of_respond',Bool,self.of_callback)
             self.of_signal = False
 
-        
-        
-    def node_spin(self):
-        rospy.loginfo("=============== Main Ready! ===============")
-        rospy.loginfo("Press Ctrl+C to exit.")
-        rospy.loginfo("Waiting Bluetooth Input...")
-        rospy.spin()
 
     def of_callback(self,msg):
         if msg.data is not None:
@@ -71,7 +64,11 @@ class MainNode():
     def bluetooth_callback(self, msg):
         input_cmd = msg.data
         print("\n>>> Received bluetooth input : {}".format(input_cmd))
-        self.taskque.append(input_cmd)
+        if len(self.taskque) == 0:
+            self.taskque.append(input_cmd)
+        elif self.taskque[0] != input_cmd:
+            self.taskque.append(input_cmd)
+        else:pass
         print(f"<<< Task Queue : {list(map(str,self.taskque))} <<< new task added : {input_cmd}\n")
 
     def bt_callback(self, msg):
@@ -89,7 +86,7 @@ class MainNode():
             
             length = detected_user[0].length // 10
             # if only one person is detected
-            if len(detected_user) == 1:
+            if len(detected_user) >= 1:
                 if length == 0:
                     self.ac_info = "None"
                 elif length >= ac_threshold:
@@ -153,6 +150,7 @@ class MainNode():
     def subtask_of(self,bookcase_num):
         print("execute : call optical flow detector")
         self.optical_flow_pub.publish(bookcase_num)
+        self.ac_pub.publish(self.ac_info)
         while not self.of_signal:
             time.sleep(0.1)
         self.of_signal=False
