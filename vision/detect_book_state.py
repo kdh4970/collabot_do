@@ -29,6 +29,7 @@ class DetectBook:
     def __init__(self):
         self.pub = rospy.Publisher('of_respond', Bool, queue_size=5)
         self.sub = rospy.Subscriber('/of_call', Int16, callback=self.callback)
+        self.ac_sub = rospy.Subscriber('/ac_info', String, callback=self.ac_callback)
         self.opt = self.parser_opt()
         self.detect_drawer = DetectDrawer(**vars(self.opt))
         self.optical_flow = OpticalFlow()
@@ -37,8 +38,8 @@ class DetectBook:
         self.roi = None
         self.trig = False
         self.start_detect=None
-        
-        print("Finished <<< Setting Up")
+        self.timeout=10
+        print("============== Drawer Detector Ready! ==============")
 
     def callback(self, msgs):
         # state: open
@@ -51,7 +52,13 @@ class DetectBook:
             self.find_drawer = True
         else:
             print(f"receive {msgs.data}")
-            
+    
+    def ac_callback(self, msgs):
+        if msgs.data == "child":
+            self.timeout = 20
+        else:
+            self.timeout = 10
+
     def respond_publish(self):
         self.pub.publish(self.book_state)
         print("result published!")
@@ -99,9 +106,10 @@ class DetectBook:
             if self.find_drawer:
                 self.detect_drawer.run(frame)
                 now = rospy.get_rostime()
+                # 서랍 인식 제한 시간 3초 : 해당 시간 내 인식 안될 시 fail로 판정.
                 if now.secs - self.signal_time.secs > 3:
                     self.find_drawer = False
-                    cv2.putText(frame,"Detection Failure",(20,660),color=(0,0,255),fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=1,thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(frame,"Detection Failure",(20,660),color=(0,0,255),fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=3,thickness=2,lineType=cv2.LINE_AA)
                     cv2.imshow('ori_img', frame)
                     cv2.waitKey(1)
                     self.respond_publish()
@@ -119,16 +127,18 @@ class DetectBook:
                 now = rospy.get_rostime()
                 roi_img, ori_img, self.trig = self.optical_flow.run(frame, self.roi)
                 
-                if now.secs - self.start_detect.secs > 5 :
-                    cv2.putText(ori_img,"Time out",(20,660),color=(255,0,0),fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=1,thickness=2,lineType=cv2.LINE_AA)
+                # 책 이동 감지 시간 10초 : 해당 시간 동안 optical flow 수행. 이후는 time out
+                if now.secs - self.start_detect.secs > self.timeout:
+                    cv2.putText(ori_img,"Time out",(20,660),color=(255,0,0),fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=3,thickness=2,lineType=cv2.LINE_AA)
                     cv2.imshow('ori_img', ori_img)
+                    cv2.waitKey(1)
                     self.respond_publish()
                     
 
                 if self.trig:
                     print(f"running optical flow... : {str(self.trig)}")
                     self.book_state = True
-                    cv2.putText(ori_img,"Detected",(20,660),color=(0,255,0),fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=1,thickness=2,lineType=cv2.LINE_AA)
+                    cv2.putText(ori_img,"Detected",(20,660),color=(0,255,0),fontFace=cv2.FONT_HERSHEY_SIMPLEX,fontScale=3,thickness=2,lineType=cv2.LINE_AA)
                     self.respond_publish()
 
                     self.trig = False
@@ -152,6 +162,8 @@ class DetectBook:
 
 if __name__ == "__main__":
     rospy.init_node('detect_book_state')
+    cv2.namedWindow('ori_img',cv2.WINDOW_NORMAL)
+    cv2.namedWindow('roi_img',cv2.WINDOW_NORMAL)
     print("Starting...")
     # Using Camera
     source = 2
