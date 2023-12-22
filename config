@@ -41,11 +41,11 @@
       ratio = 0.5
       type = VPaned
     [[[terminal3]]]
-      command = source /home/kist/collabot_t.bash;rosrun collabot_do run.py;bash
+      command = source /home/kist/collabot_t.bash;roslaunch collabot_do run_ssim.launch;bash
       order = 0
       parent = child2
       profile = collabot_set
-      title = roscore
+      title = Main
       type = Terminal
       uuid = 8f77acc1-55c8-41b2-98b4-e467fcbc5d88
     [[[terminal4]]]
@@ -61,7 +61,7 @@
       order = 0
       parent = child5
       profile = collabot_set
-      title = SSIM
+      title = Body_tracker
       type = Terminal
       uuid = ca47c9a4-3e5b-46bc-b54f-5f399e0e3b19
     [[[terminal7]]]
@@ -69,7 +69,7 @@
       order = 1
       parent = child5
       profile = collabot_set
-      title = test
+      title = SSIM
       type = Terminal
       uuid = 6ddf5566-cced-42af-b475-3558c81ab173
   [[collabot_opt]]
@@ -103,7 +103,7 @@
       ratio = 0.5
       type = VPaned
     [[[terminal3]]]
-      command = source /home/kist/collabot_t.bash;rosrun collabot_do run.py;bash
+      command = source /home/kist/collabot_t.bash; roslaunch collabot_do run_optical_flow.launch;bash
       order = 0
       parent = child2
       profile = collabot_set
@@ -111,7 +111,7 @@
       type = Terminal
       uuid = 8f77acc1-55c8-41b2-98b4-e467fcbc5d88
     [[[terminal4]]]
-      command = source /home/kist/collabot_t.bash;sleep 1s; rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0;bash
+      command = source /home/kist/collabot_t.bash; sleep 1s; rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0;bash
       order = 1
       parent = child2
       profile = collabot_set
@@ -119,7 +119,7 @@
       type = Terminal
       uuid = 5862c8a7-63d4-4cc9-915e-12196c1b9cca
     [[[terminal6]]]
-      command = source /home/kist/collabot_t.bash;sleep 2s; roslaunch az_body_tracker run.launch;bash
+      command = source /home/kist/collabot_t.bash; sleep 1s; roslaunch az_body_tracker run.launch;bash
       order = 0
       parent = child5
       profile = collabot_set
