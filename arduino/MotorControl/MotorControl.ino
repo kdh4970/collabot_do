@@ -1,5 +1,6 @@
+#include <ros.h>
 #define USE_USBCON  
-// #include <std_msgs/Int32.h>
+ #include <std_msgs/Int32.h>
 #include <DynamixelWorkbench.h>
 #include "BookcaseReader.h"
 #if defined(__OPENCM904__)

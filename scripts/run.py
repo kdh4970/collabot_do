@@ -23,16 +23,28 @@ ac_threshold = None
 
 def config_callback(config, level):
     global ac_threshold
-    print(f"threshold changed! from {ac_threshold} to {config['ac_threshold']}")
+    print(f"threshold changed! from {ac_threshold} to {config['ac_threshold']}",end="\r")
     rospy.set_param('ac_threshold', config['ac_threshold'])
     ac_threshold = config['ac_threshold']
     return config
+
+def print_signature():
+    os.system("clear")
+    print("#############################################################################")
+    print("##                                                                         ##")
+    print("##       ####    ####     ##  ##     ##     #####     ####    ########     ##")
+    print("##     ##      ##    ##   ##  ##   ##  ##   ##  ##  ##    ##     ##        ##")
+    print("##    ##      ##      ##  ##  ##  ########  #####  ##      ##    ##        ##")
+    print("##     ##      ##    ##   ##  ##  ##    ##  ##  ##  ##    ##     ##        ##")
+    print("##       ####    ####     ##  ##  ##    ##  #####     ####       ##        ##")
+    print("##                                                                         ##")
+    print("############################################################################# \n") 
 
 class MainNode():
     def __init__(self):
         global ac_threshold
         self.detection_method = rospy.get_param('~detection_method')
-        print(f"Detection Method : {self.detection_method}")
+        # print(f"Detection Method : {self.detection_method}",end = "\r")
         self.count = 0
         self.taskque = deque()
         self.ac_info = None
@@ -69,7 +81,7 @@ class MainNode():
         elif self.taskque[0] != input_cmd:
             self.taskque.append(input_cmd)
         else:pass
-        print(f"<<< Task Queue : {list(map(str,self.taskque))} <<< new task added : {input_cmd}\n")
+        print(f"<<< Task Queue : {list(map(str,self.taskque))} <<< new task added : {input_cmd}\n",end="\r")
 
     def bt_callback(self, msg):
         global ac_threshold
@@ -96,21 +108,21 @@ class MainNode():
                 pass
         rospy.logdebug("curr state : %s",self.ac_info)
     
-    def subtask_open(self):
+    def subtask_open(self) -> None:
         self.set_bookcase_pub.publish(self.taskque[0]+" open")
         print(f"execute : Open bookcase {self.taskque[0][4]}")
 
-    def subtask_close(self):
+    def subtask_close(self) -> None:
         self.set_bookcase_pub.publish(self.taskque[0]+" close")
         print(f"execute : Close bookcase {self.taskque[0][4]}")
 
-    def subtask_reset(self):
+    def subtask_reset(self) -> None:
         self.set_bookcase_pub.publish("reset")
         print(f"execute : Reset     count {self.count} >>> 0")
         self.count = 0
         self.taskflag = False
 
-    def subtask_turtlebot_move(self,bookcasenum):
+    def subtask_turtlebot_move(self,bookcasenum : str) -> None:
         if (self.ac_info == "adult" and self.count>=3):
             self.move_turtlebot_pub.publish("move 0")
             print("execute : Move turtlebot <<< support adult 0")
@@ -120,7 +132,7 @@ class MainNode():
             print(f"execute : Move turtlebot <<< support child {bookcasenum}")
             self.turtlebot_moved = True
 
-    def subtask_turtlebot_reset(self):
+    def subtask_turtlebot_reset(self) -> None:
         if (self.ac_info == "adult" and self.turtlebot_moved):
             self.move_turtlebot_pub.publish("reset a")
             print("execute : Move turtlebot <<< reset a")
@@ -130,13 +142,13 @@ class MainNode():
             print("execute : Move turtlebot <<< reset c")
             self.turtlebot_moved = False
 
-    def wait_motor_open(self,open_time):
+    def wait_motor_open(self,open_time) -> None:
         print("execute : Waiting motor open...")
         while True:
             curr_time = rospy.Time.now().secs
             if (curr_time-open_time) > 3: break
 
-    def subtask_ssim(self,bookcase_num):
+    def subtask_ssim(self,bookcase_num:int) -> None:
         rospy.wait_for_service('ssim_server')
         print("execute : Calling SSIM server...")
         try:
@@ -147,7 +159,7 @@ class MainNode():
         except rospy.ServiceException as e:
             print("error : Service call failed: %s"%e)
 
-    def subtask_of(self,bookcase_num):
+    def subtask_of(self,bookcase_num:int) -> None:
         print("execute : call optical flow detector")
         self.optical_flow_pub.publish(bookcase_num)
         self.ac_pub.publish(self.ac_info)
@@ -158,7 +170,7 @@ class MainNode():
 
 
     # ssim 끝나면 led키고, 몇초 기다린다음 닫기  #348 5초 나머지 1.5초
-    def ssim_light(self):
+    def ssim_light(self) -> None:
         on_time = rospy.Time.now().secs
         self.set_bookcase_pub.publish("led on")
         print("execute : LED on")
@@ -173,7 +185,8 @@ class MainNode():
         self.set_bookcase_pub.publish("led off")
         print("execute : LED off")
 
-    def run(self):
+    def run(self) -> None:
+        print_flag=False
         while True:
             if (len(self.taskque) is not 0) and (self.ac_info is not "None"): # running task
                 turtlebot_condition = (self.ac_info == "adult" and self.count>=3) or (self.ac_info == "child" and self.taskque[0][4] in ["1","2","3"])
@@ -209,34 +222,30 @@ class MainNode():
                 else:pass
                 
                 self.taskque.popleft()
+                os.system("clear")
                 # self.ac_info = None
                 print("+-------------------------------------------------+\n\n")
+                print_flag = True
             else: # waiting task
-                pass
+                if print_flag:
+                    print_signature()
+                    print("Status : Waiting New Task...",end="\r")
+                    print_flag = False
+                    
                 # self.taskflag = False
 
 def main():
     rospy.init_node("Collabot_main")
-    print("#############################################################################")
-    print("##                                                                         ##")
-    print("##       ####    ####     ##  ##     ##     #####     ####    ########     ##")
-    print("##     ##      ##    ##   ##  ##   ##  ##   ##  ##  ##    ##     ##        ##")
-    print("##    ##      ##      ##  ##  ##  ########  #####  ##      ##    ##        ##")
-    print("##     ##      ##    ##   ##  ##  ##    ##  ##  ##  ##    ##     ##        ##")
-    print("##       ####    ####     ##  ##  ##    ##  #####     ####       ##        ##")
-    print("##                                                                         ##")
-    print("############################################################################# \n") 
-    print("Waiting...")
+    print_signature()
+    print("Status : Waiting Bluetooth Input...",end="\r")
     rospy.set_param('kill', False)
     time.sleep(5)
     node = MainNode()
-    rospy.loginfo("Starting Main Node thread...")
+    print("Starting Main Node thread...              ",end="\r")
     exec_thread = threading.Thread(target=node.run)
     exec_thread.daemon=True
     exec_thread.start()
-    rospy.loginfo("=============== Main Node Ready! ===============")
-    rospy.loginfo("Press Ctrl+C to exit.")
-    rospy.loginfo("Waiting Bluetooth Input...")
+    print("Waiting Bluetooth Input...               ",end="\r")
     rospy.spin()
 
 if __name__=="__main__":
