@@ -189,7 +189,7 @@ class MainNode():
         print_flag=False
         while True:
             if (len(self.taskque) is not 0) and (self.ac_info is not "None"): # running task
-                os.system("clear")
+                
                 turtlebot_condition = (self.ac_info == "adult" and self.count>=3) or (self.ac_info == "child" and self.taskque[0][4] in ["1","2","3"])
                 print("+------------------- Task Info -------------------+")
                 print(f"Task Queue   : {list(map(str,self.taskque))}")
