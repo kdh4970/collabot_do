@@ -97,6 +97,7 @@ class MainNode():
                 detected_user.append(elem)
             
             length = detected_user[0].length // 10
+
             # if only one person is detected
             if len(detected_user) >= 1:
                 if length == 0:
@@ -123,7 +124,7 @@ class MainNode():
         self.taskflag = False
 
     def subtask_turtlebot_move(self,bookcasenum : str) -> None:
-        if (self.ac_info == "adult" and self.count>=3):
+        if (self.ac_info == "adult" and self.count==3):
             self.move_turtlebot_pub.publish("move 0")
             print("execute : Move turtlebot <<< support adult 0")
             self.turtlebot_moved = True
@@ -146,7 +147,11 @@ class MainNode():
         print("execute : Waiting motor open...")
         while True:
             curr_time = rospy.Time.now().secs
-            if (curr_time-open_time) > 3: break
+            
+            if self.ac_info == "adult":
+                if (curr_time-open_time) >3: break
+            elif self.ac_info == "child":
+                if (curr_time-open_time) >5: break
 
     def subtask_ssim(self,bookcase_num:int) -> None:
         rospy.wait_for_service('ssim_server')
@@ -187,7 +192,23 @@ class MainNode():
 
     def run(self) -> None:
         print_flag=False
+
+        # for fake mode
+        # chk_time = rospy.Time.now().secs
         while True:
+            # now = rospy.Time.now().secs
+            # if (now-chk_time) > 1:
+            #     rospy.logdebug("state : %s",self.ac_info)
+            #     chk_time = now
+            
+            # if ac_threshold == 0:
+            #     self.ac_info = "None"
+            # elif ac_threshold >= 150:
+            #     self.ac_info = "adult"
+            # else:
+            #     self.ac_info = "child"
+            # pass
+
             if (len(self.taskque) is not 0) and (self.ac_info is not "None"): # running task
                 turtlebot_condition = (self.ac_info == "adult" and self.count>=3) or (self.ac_info == "child" and self.taskque[0][4] in ["1","2","3"])
                 print("+------------------- Task Info -------------------+")
@@ -239,6 +260,7 @@ def main():
     print_signature()
     print("Status : Waiting Bluetooth Input...",end="\r")
     rospy.set_param('kill', False)
+    rospy.set_param('fake_mode',False)
     time.sleep(5)
     node = MainNode()
     print("Starting Main Node thread...              ",end="\r")
