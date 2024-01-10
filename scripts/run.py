@@ -68,12 +68,12 @@ class MainNode():
             self.of_signal = False
 
 
-    def of_callback(self,msg):
+    def of_callback(self,msg) -> None:
         if msg.data is not None:
             print(f"optical flow returns {msg.data}")
             self.of_signal = True
 
-    def bluetooth_callback(self, msg):
+    def bluetooth_callback(self, msg) -> None:
         input_cmd = msg.data
         print("\n>>> Received bluetooth input : {}".format(input_cmd))
         if len(self.taskque) == 0:
@@ -83,7 +83,7 @@ class MainNode():
         else:pass
         print(f"<<< Task Queue : {list(map(str,self.taskque))} <<< new task added : {input_cmd}\n",end="\r")
 
-    def bt_callback(self, msg):
+    def bt_callback(self, msg) -> None:
         global ac_threshold
         # get body tracking data
         if not self.taskflag:
